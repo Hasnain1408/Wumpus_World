@@ -10,12 +10,12 @@
 10. Optimization
 
 
-1,2,3   -   pomegranate   
-4,6,8   -   kira, epsilon   
-7       -   kira, epsilon
-9       -   all
-10      -   pomegranate, kira
+1,2,3   -   pomegranate         - 27 june
+4,6,8   -   kira, epsilon       - 2  july
+5,7     -   kira, epsilon       - 2  july
+9       -   all                 - 5  july
+10      -   pomegranate, kira   - 6  july
 
 Finish   -  6 july 2025
-Backend  -  python, fastapi
+Backend  -  python, django
 frontend -  React, js
