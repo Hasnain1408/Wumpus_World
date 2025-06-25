@@ -1,0 +1,21 @@
+1.  Environment setup
+2.  board input
+3.  Manual Player movement functionality
+4.  frontend
+5.  Single Player Game setup
+6.  frontend update
+7.  Automate movement
+8.  AESTHETIC UI
+9.  Tile type prediction
+10. Optimization
+
+
+1,2,3   -   pomegranate   
+4,6,8   -   kira, epsilon   
+7       -   kira, epsilon
+9       -   all
+10      -   pomegranate, kira
+
+Finish   -  6 july 2025
+Backend  -  python, fastapi
+frontend -  React, js
