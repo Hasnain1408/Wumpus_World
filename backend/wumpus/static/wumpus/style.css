@@ -24,8 +24,94 @@ body {
     padding: 30px;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    max-width: 1200px;
+    max-width: 1400px;
     width: 100%;
+}
+
+/* Mode Selection Styles */
+.mode-selection {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.mode-selection h3 {
+    color: #ffd700;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mode-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.mode-btn {
+    background: linear-gradient(145deg, #4a5568, #2d3748);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    min-width: 140px;
+}
+
+.mode-btn:hover {
+    background: linear-gradient(145deg, #5a6578, #3d4758);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn.active {
+    background: linear-gradient(145deg, #3182ce, #2b6cb0);
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Environment Controls */
+.environment-controls {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.environment-controls h3 {
+    color: #ffd700;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.env-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.env-btn {
+    background: linear-gradient(145deg, #805ad5, #6b46c1);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.env-btn:hover {
+    background: linear-gradient(145deg, #9065e5, #7b56d1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .game-title {
@@ -167,6 +253,7 @@ body {
 .controls {
     display: flex;
     justify-content: center;
+    gap: 30px;
     margin-bottom: 25px;
 }
 
@@ -176,6 +263,7 @@ body {
     border-radius: 15px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     text-align: center;
+    min-width: 300px;
 }
 
 .control-group h3 {
@@ -183,6 +271,91 @@ body {
     color: #ffd700;
     font-size: 1.3em;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* AI Controls */
+.ai-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.ai-btn {
+    background: linear-gradient(145deg, #38a169, #2f855a);
+    color: #fff;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 0.9em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.ai-btn:hover {
+    background: linear-gradient(145deg, #48b179, #3f956a);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ai-btn:disabled {
+    background: linear-gradient(145deg, #6b7280, #4b5563);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.ai-info {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 10px;
+}
+
+.ai-info p {
+    margin: 0;
+    color: #e2e8f0;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+/* Notification System */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.success {
+    border-left: 4px solid #38a169;
+}
+
+.notification.error {
+    border-left: 4px solid #e53e3e;
+}
+
+.notification.info {
+    border-left: 4px solid #3182ce;
+}
+
+.notification.warning {
+    border-left: 4px solid #d69e2e;
 }
 
 .control-buttons {

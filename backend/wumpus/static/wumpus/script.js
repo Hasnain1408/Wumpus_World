@@ -1,135 +1,201 @@
-// Wumpus World Game Logic
+// Wumpus World Frontend Interface - Updated with AI and Random Environment fixes
 
-class WumpusWorld {
+class WumpusWorldUI {
     constructor() {
+        this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        this.gameState = null;
         this.boardSize = 10;
-        this.board = [];
-        this.agentPosition = { x: 0, y: 9 }; // Bottom-left corner
-        this.agentDirection = 'right'; // right, up, left, down
-        this.arrows = 1;
-        this.score = 0;
-        this.gameStatus = 'playing'; // playing, won, lost
-        this.visitedCells = new Set();
-        this.hasGold = false;
-        this.wumpusAlive = true;
+        this.gameMode = 'manual'; // 'manual' or 'ai'
+        this.aiPlaying = false;
+        this.aiInterval = null;
+        this.moveDelay = 1500; // Delay between AI moves in milliseconds
         
-        this.initializeBoard();
+        this.initializeUI();
+        this.loadGameState();
+    }
+
+    initializeUI() {
+        // Initialize the game board UI
         this.renderBoard();
-        this.updateGameInfo();
+        this.setupEventListeners();
+        this.createNotificationContainer();
+        
+        // Generate initial random environment
+        setTimeout(() => {
+            this.generateRandomEnvironment();
+        }, 500);
     }
 
-    initializeBoard() {
-        // Initialize empty board
-        this.board = Array(this.boardSize).fill().map(() => 
-            Array(this.boardSize).fill().map(() => ({
-                wumpus: false,
-                pit: false,
-                gold: false,
-                agent: false,
-                breeze: false,
-                stench: false,
-                glitter: false,
-                visited: false
-            }))
-        );
-
-        // Place agent at starting position
-        this.board[this.agentPosition.y][this.agentPosition.x].agent = true;
-        this.board[this.agentPosition.y][this.agentPosition.x].visited = true;
-        this.visitedCells.add(`${this.agentPosition.x},${this.agentPosition.y}`);
-
-        // For aesthetic purposes, we'll add a default safe layout
-        // Later this will be replaced with environment input
-        this.setupDefaultEnvironment();
-    }
-
-    setupDefaultEnvironment() {
-        // Place Wumpus (example position)
-        this.board[7][3].wumpus = true;
-        
-        // Place Gold (example position)
-        this.board[2][8].gold = true;
-        this.board[2][8].glitter = true;
-        
-        // Place some pits (example positions)
-        const pitPositions = [
-            {x: 2, y: 2}, {x: 3, y: 4}, {x: 6, y: 1}, 
-            {x: 7, y: 7}, {x: 1, y: 5}, {x: 8, y: 3}
-        ];
-        
-        pitPositions.forEach(pos => {
-            if (pos.x !== this.agentPosition.x || pos.y !== this.agentPosition.y) {
-                this.board[pos.y][pos.x].pit = true;
-            }
-        });
-
-        // Generate breezes around pits
-        this.generateBreezes();
-        
-        // Generate stenches around wumpus
-        this.generateStenches();
-    }
-
-    generateBreezes() {
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                if (this.board[y][x].pit) {
-                    // Add breeze to adjacent cells
-                    this.addBreezeToAdjacent(x, y);
-                }
-            }
+    createNotificationContainer() {
+        // Create notification container if it doesn't exist
+        if (!document.getElementById('notification-container')) {
+            const container = document.createElement('div');
+            container.id = 'notification-container';
+            container.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 1000;
+                pointer-events: none;
+            `;
+            document.body.appendChild(container);
         }
     }
 
-    generateStenches() {
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                if (this.board[y][x].wumpus && this.wumpusAlive) {
-                    // Add stench to adjacent cells
-                    this.addStenchToAdjacent(x, y);
+    showMessage(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            pointer-events: auto;
+            cursor: pointer;
+        `;
+
+        // Add colored border based on type
+        const borderColors = {
+            'success': '#38a169',
+            'error': '#e53e3e',
+            'info': '#3182ce',
+            'warning': '#d69e2e'
+        };
+        
+        notification.style.borderLeft = `4px solid ${borderColors[type] || borderColors.info}`;
+        
+        const container = document.getElementById('notification-container');
+        container.appendChild(notification);
+        
+        // Show notification
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (container.contains(notification)) {
+                    container.removeChild(notification);
                 }
+            }, 300);
+        }, 3000);
+        
+        // Click to dismiss
+        notification.addEventListener('click', () => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (container.contains(notification)) {
+                    container.removeChild(notification);
+                }
+            }, 300);
+        });
+    }
+
+    updateGameInfo() {
+        if (!this.gameState) return;
+        
+        document.getElementById('score').textContent = this.gameState.score || 0;
+        document.getElementById('arrows').textContent = this.gameState.agent?.arrows || 0;
+        
+        // Update game status
+        const statusElement = document.getElementById('status');
+        if (this.gameState.game_over) {
+            if (this.gameState.game_won) {
+                statusElement.textContent = 'Victory!';
+                statusElement.style.color = '#38a169';
+            } else {
+                statusElement.textContent = 'Game Over';
+                statusElement.style.color = '#e53e3e';
             }
+        } else {
+            statusElement.textContent = 'Playing';
+            statusElement.style.color = '#ffd700';
         }
     }
 
-    addBreezeToAdjacent(x, y) {
-        const directions = [
-            {dx: 0, dy: 1}, {dx: 0, dy: -1},
-            {dx: 1, dy: 0}, {dx: -1, dy: 0}
-        ];
-
-        directions.forEach(dir => {
-            const newX = x + dir.dx;
-            const newY = y + dir.dy;
-            
-            if (this.isValidPosition(newX, newY) && !this.board[newY][newX].pit) {
-                this.board[newY][newX].breeze = true;
-            }
-        });
+    setupEventListeners() {
+        // Add event listeners for UI controls
+        document.addEventListener('keydown', (e) => this.handleKeyboardInput(e));
     }
 
-    addStenchToAdjacent(x, y) {
-        const directions = [
-            {dx: 0, dy: 1}, {dx: 0, dy: -1},
-            {dx: 1, dy: 0}, {dx: -1, dy: 0}
-        ];
-
-        directions.forEach(dir => {
-            const newX = x + dir.dx;
-            const newY = y + dir.dy;
-            
-            if (this.isValidPosition(newX, newY) && !this.board[newY][newX].wumpus) {
-                this.board[newY][newX].stench = true;
-            }
-        });
+    setGameMode(mode) {
+        this.gameMode = mode;
+        
+        // Update UI
+        document.getElementById('manual-mode').classList.toggle('active', mode === 'manual');
+        document.getElementById('ai-mode').classList.toggle('active', mode === 'ai');
+        document.getElementById('current-mode').textContent = mode === 'manual' ? 'Manual' : 'AI';
+        
+        // Show/hide appropriate controls
+        document.getElementById('manual-controls').style.display = mode === 'manual' ? 'block' : 'none';
+        document.getElementById('ai-controls').style.display = mode === 'ai' ? 'block' : 'none';
+        
+        // Stop AI if switching to manual
+        if (mode === 'manual' && this.aiPlaying) {
+            this.pauseAI();
+        }
+        
+        this.showMessage(`Switched to ${mode === 'manual' ? 'Manual' : 'AI'} mode`);
     }
 
-    isValidPosition(x, y) {
-        return x >= 0 && x < this.boardSize && y >= 0 && y < this.boardSize;
+    async generateRandomEnvironment() {
+        try {
+            const response = await fetch('/api/random-environment/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                await this.loadCustomEnvironment(data.environment);
+                this.showMessage('Random environment generated!', 'success');
+            } else {
+                this.showMessage('Failed to generate random environment', 'error');
+            }
+        } catch (error) {
+            console.error('Error generating random environment:', error);
+            this.showMessage('Error generating random environment', 'error');
+        }
+    }
+
+    async loadGameState() {
+        try {
+            const response = await fetch('/api/game-state/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+            }
+        } catch (error) {
+            console.error('Error loading game state:', error);
+        }
     }
 
     renderBoard() {
         const boardElement = document.getElementById('wumpus-board');
+        if (!boardElement) return;
+        
         boardElement.innerHTML = '';
 
         for (let y = 0; y < this.boardSize; y++) {
@@ -148,44 +214,8 @@ class WumpusWorld {
                 const indicators = document.createElement('div');
                 indicators.className = 'cell-indicators';
 
-                const cellData = this.board[y][x];
-
-                // Add main content (agent, wumpus, gold, pit)
-                if (cellData.agent) {
-                    mainContent.textContent = '🤖';
-                    cell.classList.add('current');
-                } else if (cellData.wumpus && this.wumpusAlive) {
-                    mainContent.textContent = this.isCellVisible(x, y) ? '👹' : '';
-                } else if (cellData.wumpus && !this.wumpusAlive) {
-                    mainContent.textContent = this.isCellVisible(x, y) ? '💀' : '';
-                } else if (cellData.gold && this.isCellVisible(x, y)) {
-                    mainContent.textContent = '💰';
-                } else if (cellData.pit && this.isCellVisible(x, y)) {
-                    mainContent.textContent = '🕳️';
-                    cell.classList.add('danger');
-                }
-
-                // Add indicators (breeze, stench, glitter)
-                if (this.isCellVisible(x, y)) {
-                    if (cellData.breeze) {
-                        indicators.innerHTML += '💨';
-                    }
-                    if (cellData.stench && this.wumpusAlive) {
-                        indicators.innerHTML += '💀';
-                    }
-                    if (cellData.glitter) {
-                        indicators.innerHTML += '✨';
-                    }
-                }
-
-                // Add cell state classes
-                if (cellData.visited) {
-                    cell.classList.add('visited');
-                }
-                
-                if (this.isCellSafe(x, y) && cellData.visited) {
-                    cell.classList.add('safe');
-                }
+                // Populate cell content based on game state
+                this.populateCellContent(x, y, mainContent, indicators, cell);
 
                 cellContent.appendChild(mainContent);
                 cellContent.appendChild(indicators);
@@ -199,31 +229,68 @@ class WumpusWorld {
         }
     }
 
-    isCellVisible(x, y) {
-        // Cell is visible if agent has visited it or if it's adjacent to visited cell
-        if (this.visitedCells.has(`${x},${y}`)) {
-            return true;
-        }
-        
-        // Check if adjacent to any visited cell
-        const directions = [
-            {dx: 0, dy: 1}, {dx: 0, dy: -1},
-            {dx: 1, dy: 0}, {dx: -1, dy: 0}
-        ];
+    populateCellContent(x, y, mainContent, indicators, cell) {
+        if (!this.gameState) return;
 
-        for (let dir of directions) {
-            const adjX = x + dir.dx;
-            const adjY = y + dir.dy;
-            if (this.visitedCells.has(`${adjX},${adjY}`)) {
-                return true;
+        const cellData = this.gameState.board[y][x];
+        
+        // Add main content (agent, wumpus, gold, pit)
+        if (cellData.agent) {
+            mainContent.textContent = '🤖';
+            cell.classList.add('current');
+        } else if (cellData.wumpus && this.gameState.wumpus_alive) {
+            mainContent.textContent = this.isCellVisible(x, y) ? '👹' : '';
+            if (this.isCellVisible(x, y)) {
+                cell.classList.add('danger');
+            }
+        } else if (cellData.wumpus && !this.gameState.wumpus_alive) {
+            mainContent.textContent = this.isCellVisible(x, y) ? '💀' : '';
+        } else if (cellData.gold && this.isCellVisible(x, y)) {
+            mainContent.textContent = '💰';
+        } else if (cellData.pit && this.isCellVisible(x, y)) {
+            mainContent.textContent = '🕳️';
+            cell.classList.add('danger');
+        }
+
+        // Add indicators (breeze, stench, glitter)
+        if (this.isCellVisible(x, y)) {
+            cell.classList.add('visited');
+            
+            if (cellData.breeze) {
+                indicators.innerHTML += '<span title="Breeze - Pit nearby">💨</span>';
+            }
+            if (cellData.stench && this.gameState.wumpus_alive) {
+                indicators.innerHTML += '<span title="Stench - Wumpus nearby">💀</span>';
+            }
+            if (cellData.glitter) {
+                indicators.innerHTML += '<span title="Glitter - Gold here">✨</span>';
             }
         }
+
+        // Add cell state classes
+        if (cellData.visited) {
+            cell.classList.add('visited');
+        }
         
-        return false;
+        if (this.isCellSafe(x, y) && cellData.visited) {
+            cell.classList.add('safe');
+        }
+        
+        // Add coordinates for debugging
+        cell.title = `(${x}, ${y})`;
+    }
+
+    isCellVisible(x, y) {
+        if (!this.gameState) return false;
+        
+        // Cell is visible if agent has visited it
+        return this.gameState.visited_cells.includes(`${x},${y}`);
     }
 
     isCellSafe(x, y) {
-        const cellData = this.board[y][x];
+        if (!this.gameState) return false;
+        
+        const cellData = this.gameState.board[y][x];
         return !cellData.pit && !cellData.wumpus;
     }
 
@@ -232,408 +299,394 @@ class WumpusWorld {
         // This can be used for pathfinding or manual movement later
     }
 
-    moveAgent(direction) {
-        if (this.gameStatus !== 'playing') return;
-
-        let newX = this.agentPosition.x;
-        let newY = this.agentPosition.y;
-
-        switch (direction) {
-            case 'up':
-                newY = Math.max(0, newY - 1);
-                break;
-            case 'down':
-                newY = Math.min(this.boardSize - 1, newY + 1);
-                break;
-            case 'left':
-                newX = Math.max(0, newX - 1);
-                break;
-            case 'right':
-                newX = Math.min(this.boardSize - 1, newX + 1);
-                break;
-        }
-
-        // Check if movement is valid
-        if (newX === this.agentPosition.x && newY === this.agentPosition.y) {
-            this.updateStatus('Cannot move outside the board!');
+    async makeMove(action) {
+        // In AI mode, don't allow manual moves
+        if (this.gameMode === 'ai' && this.aiPlaying) {
             return;
         }
 
-        // Update agent position
-        this.board[this.agentPosition.y][this.agentPosition.x].agent = false;
-        this.agentPosition.x = newX;
-        this.agentPosition.y = newY;
-        this.agentDirection = direction;
-        
-        // Visit new cell
-        this.board[newY][newX].agent = true;
-        this.board[newY][newX].visited = true;
-        this.visitedCells.add(`${newX},${newY}`);
-
-        // Deduct movement score
-        this.score -= 1;
-
-        // Check for game events
-        this.checkGameEvents();
-        
-        this.renderBoard();
-        this.updateGameInfo();
-    }
-
-    checkGameEvents() {
-        const currentCell = this.board[this.agentPosition.y][this.agentPosition.x];
-
-        // Check for pit
-        if (currentCell.pit) {
-            this.gameStatus = 'lost';
-            this.score -= 1000;
-            this.updateStatus('Game Over! You fell into a pit!');
-            return;
-        }
-
-        // Check for wumpus
-        if (currentCell.wumpus && this.wumpusAlive) {
-            this.gameStatus = 'lost';
-            this.score -= 1000;
-            this.updateStatus('Game Over! You were eaten by the Wumpus!');
-            return;
-        }
-
-        // Check for gold
-        if (currentCell.gold && !this.hasGold) {
-            this.updateStatus('You see glittering gold!');
-        }
-
-        // Update status with perceptions
-        this.updatePerceptions();
-    }
-
-    updatePerceptions() {
-        const currentCell = this.board[this.agentPosition.y][this.agentPosition.x];
-        let perceptions = [];
-
-        if (currentCell.breeze) perceptions.push('breeze');
-        if (currentCell.stench && this.wumpusAlive) perceptions.push('stench');
-        if (currentCell.glitter) perceptions.push('glitter');
-
-        if (perceptions.length > 0) {
-            this.updateStatus(`You perceive: ${perceptions.join(', ')}`);
-        } else {
-            this.updateStatus('All clear!');
-        }
-    }
-
-    shootArrow() {
-        if (this.gameStatus !== 'playing') return;
-        
-        if (this.arrows <= 0) {
-            this.updateStatus('No arrows remaining!');
-            return;
-        }
-
-        this.arrows--;
-        this.score -= 10;
-
-        // Calculate arrow path based on direction
-        let targetX = this.agentPosition.x;
-        let targetY = this.agentPosition.y;
-
-        switch (this.agentDirection) {
-            case 'up':
-                targetY = 0;
-                break;
-            case 'down':
-                targetY = this.boardSize - 1;
-                break;
-            case 'left':
-                targetX = 0;
-                break;
-            case 'right':
-                targetX = this.boardSize - 1;
-                break;
-        }
-
-        // Check if wumpus is in the line of fire
-        let wumpusHit = false;
-        
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                if (this.board[y][x].wumpus && this.isInLineOfFire(x, y)) {
-                    wumpusHit = true;
-                    this.wumpusAlive = false;
-                    this.score += 500;
-                    this.updateStatus('You hear a loud scream! The Wumpus is dead!');
-                    
-                    // Remove stenches
-                    this.removeStenches();
-                    break;
-                }
-            }
-        }
-
-        if (!wumpusHit) {
-            this.updateStatus('Your arrow misses...');
-        }
-
-        this.renderBoard();
-        this.updateGameInfo();
-    }
-
-    isInLineOfFire(x, y) {
-        switch (this.agentDirection) {
-            case 'up':
-                return x === this.agentPosition.x && y < this.agentPosition.y;
-            case 'down':
-                return x === this.agentPosition.x && y > this.agentPosition.y;
-            case 'left':
-                return y === this.agentPosition.y && x < this.agentPosition.x;
-            case 'right':
-                return y === this.agentPosition.y && x > this.agentPosition.x;
-            default:
-                return false;
-        }
-    }
-
-    removeStenches() {
-        for (let y = 0; y < this.boardSize; y++) {
-            for (let x = 0; x < this.boardSize; x++) {
-                this.board[y][x].stench = false;
-            }
-        }
-    }
-
-    grabGold() {
-        if (this.gameStatus !== 'playing') return;
-
-        const currentCell = this.board[this.agentPosition.y][this.agentPosition.x];
-        
-        if (currentCell.gold && !this.hasGold) {
-            this.hasGold = true;
-            currentCell.gold = false;
-            currentCell.glitter = false;
-            this.score += 1000;
-            this.updateStatus('You grabbed the gold!');
-        } else if (this.hasGold) {
-            this.updateStatus('You already have the gold!');
-        } else {
-            this.updateStatus('No gold here to grab!');
-        }
-
-        this.renderBoard();
-        this.updateGameInfo();
-    }
-
-    climbOut() {
-        if (this.gameStatus !== 'playing') return;
-
-        // Can only climb out from starting position (0, 9)
-        if (this.agentPosition.x === 0 && this.agentPosition.y === 9) {
-            if (this.hasGold) {
-                this.gameStatus = 'won';
-                this.score += 1000;
-                this.updateStatus('Congratulations! You won the game!');
-            } else {
-                this.gameStatus = 'won';
-                this.updateStatus('You climbed out safely, but without the gold...');
-            }
-        } else {
-            this.updateStatus('You can only climb out from the starting position (bottom-left)!');
-        }
-
-        this.updateGameInfo();
-    }
-
-    updateGameInfo() {
-        document.getElementById('score').textContent = this.score;
-        document.getElementById('arrows').textContent = this.arrows;
-        
-        let status = '';
-        switch (this.gameStatus) {
-            case 'playing':
-                status = 'Exploring';
-                break;
-            case 'won':
-                status = 'Victory!';
-                break;
-            case 'lost':
-                status = 'Game Over';
-                break;
-        }
-        document.getElementById('status').textContent = status;
-    }
-
-    updateStatus(message) {
-        console.log(message);
-        // You can add a status display element to show messages to the user
-        // For now, we'll just log to console
-    }
-
-    // Method to reset the game
-    resetGame() {
-        this.agentPosition = { x: 0, y: 9 };
-        this.agentDirection = 'right';
-        this.arrows = 1;
-        this.score = 0;
-        this.gameStatus = 'playing';
-        this.visitedCells = new Set();
-        this.hasGold = false;
-        this.wumpusAlive = true;
-        
-        this.initializeBoard();
-        this.renderBoard();
-        this.updateGameInfo();
-    }
-
-    // Method to load custom environment (for future use)
-    loadEnvironment(environmentData) {
-        // This method will be used when taking environment as input
-        // environmentData should contain positions of wumpus, pits, and gold
-        console.log('Loading custom environment:', environmentData);
-        
-        // Reset board
-        this.board = Array(this.boardSize).fill().map(() => 
-            Array(this.boardSize).fill().map(() => ({
-                wumpus: false,
-                pit: false,
-                gold: false,
-                agent: false,
-                breeze: false,
-                stench: false,
-                glitter: false,
-                visited: false
-            }))
-        );
-
-        // Place agent
-        this.board[this.agentPosition.y][this.agentPosition.x].agent = true;
-        this.board[this.agentPosition.y][this.agentPosition.x].visited = true;
-        this.visitedCells.add(`${this.agentPosition.x},${this.agentPosition.y}`);
-
-        // Apply environment data
-        if (environmentData.wumpus) {
-            this.board[environmentData.wumpus.y][environmentData.wumpus.x].wumpus = true;
-        }
-
-        if (environmentData.gold) {
-            this.board[environmentData.gold.y][environmentData.gold.x].gold = true;
-            this.board[environmentData.gold.y][environmentData.gold.x].glitter = true;
-        }
-
-        if (environmentData.pits) {
-            environmentData.pits.forEach(pit => {
-                if (pit.x !== this.agentPosition.x || pit.y !== this.agentPosition.y) {
-                    this.board[pit.y][pit.x].pit = true;
-                }
+        try {
+            const response = await fetch('/api/make-move/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    action: action
+                })
             });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage(data.message);
+                
+                // Check if game ended
+                if (this.gameState.game_over) {
+                    this.pauseAI(); // Stop AI if game ended
+                }
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error making move:', error);
+            this.showMessage('Error making move', 'error');
+        }
+    }
+
+    getCSRFToken() {
+        const cookieValue = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+        return cookieValue ? cookieValue.pop() : '';
+    }
+
+    async makeAIMove() {
+        if (this.gameMode !== 'ai' || !this.gameState || this.gameState.game_over) {
+            return;
         }
 
-        // Generate perceptions
-        this.generateBreezes();
-        this.generateStenches();
+        try {
+            // First get AI hint
+            const hintResponse = await fetch('/api/ai-hint/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const hintData = await hintResponse.json();
+            
+            if (hintData.success && hintData.suggestion) {
+                // Make the suggested move
+                const moveResponse = await fetch('/api/make-move/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken(),
+                    },
+                    body: JSON.stringify({
+                        session_id: this.sessionId,
+                        action: hintData.suggestion
+                    })
+                });
+                
+                const moveData = await moveResponse.json();
+                
+                if (moveData.success) {
+                    this.gameState = moveData.game_state;
+                    this.renderBoard();
+                    this.updateGameInfo();
+                    this.showMessage(`AI made move: ${hintData.suggestion}`, 'info');
+                    
+                    // Update AI info display
+                    const aiSuggestionElement = document.getElementById('ai-suggestion');
+                    if (aiSuggestionElement) {
+                        aiSuggestionElement.textContent = `AI made move: ${hintData.suggestion}`;
+                    }
+                } else {
+                    this.showMessage(`AI move failed: ${moveData.message}`, 'error');
+                }
+            } else {
+                this.showMessage('AI could not determine a safe move', 'warning');
+                const aiSuggestionElement = document.getElementById('ai-suggestion');
+                if (aiSuggestionElement) {
+                    aiSuggestionElement.textContent = 'AI could not determine a safe move';
+                }
+            }
+        } catch (error) {
+            console.error('Error making AI move:', error);
+            this.showMessage('Error making AI move', 'error');
+        }
+    }
+
+    async autoPlay() {
+        if (this.gameMode !== 'ai' || this.aiPlaying) {
+            return;
+        }
+
+        this.aiPlaying = true;
+        this.showMessage('AI Auto-play started', 'info');
         
-        this.renderBoard();
-        this.updateGameInfo();
+        // Update button states
+        const autoPlayBtn = document.querySelector('button[onclick="autoPlay()"]');
+        const pauseBtn = document.querySelector('button[onclick="pauseAI()"]');
+        
+        if (autoPlayBtn) autoPlayBtn.disabled = true;
+        if (pauseBtn) pauseBtn.disabled = false;
+
+        this.aiInterval = setInterval(async () => {
+            if (!this.aiPlaying || !this.gameState || this.gameState.game_over) {
+                this.pauseAI();
+                return;
+            }
+
+            await this.makeAIMove();
+            
+        }, this.moveDelay);
+    }
+
+    pauseAI() {
+        this.aiPlaying = false;
+        
+        if (this.aiInterval) {
+            clearInterval(this.aiInterval);
+            this.aiInterval = null;
+        }
+        
+        // Update button states
+        const autoPlayBtn = document.querySelector('button[onclick="autoPlay()"]');
+        const pauseBtn = document.querySelector('button[onclick="pauseAI()"]');
+        
+        if (autoPlayBtn) autoPlayBtn.disabled = false;
+        if (pauseBtn) pauseBtn.disabled = true;
+        
+        this.showMessage('AI Auto-play paused', 'info');
+    }
+
+    async resetGame() {
+        // Stop AI if running
+        if (this.aiPlaying) {
+            this.pauseAI();
+        }
+        
+        try {
+            const response = await fetch('/api/reset-game/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Game reset successfully', 'success');
+                
+                // Generate new random environment
+                setTimeout(() => {
+                    this.generateRandomEnvironment();
+                }, 500);
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error resetting game:', error);
+            this.showMessage('Error resetting game', 'error');
+        }
+    }
+
+    async loadCustomEnvironment(environmentData) {
+        try {
+            const response = await fetch('/api/load-environment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    environment: environmentData
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded successfully', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading environment:', error);
+            this.showMessage('Error loading environment', 'error');
+        }
+    }
+
+    async getAIHint() {
+        try {
+            const response = await fetch('/api/ai-hint/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.showMessage(`AI suggests: ${data.suggestion}`, 'info');
+                const aiSuggestionElement = document.getElementById('ai-suggestion');
+                if (aiSuggestionElement) {
+                    aiSuggestionElement.textContent = `AI suggests: ${data.suggestion}`;
+                }
+            } else {
+                this.showMessage('No AI suggestion available', 'warning');
+            }
+        } catch (error) {
+            console.error('Error getting AI hint:', error);
+            this.showMessage('Error getting AI hint', 'error');
+        }
+    }
+
+    handleKeyboardInput(event) {
+        // Only allow keyboard input in manual mode
+        if (this.gameMode !== 'manual' || !this.gameState || this.gameState.game_over) {
+            return;
+        }
+
+        switch (event.key) {
+            case 'ArrowUp':
+            case 'w':
+            case 'W':
+                event.preventDefault();
+                this.makeMove('move_up');
+                break;
+            case 'ArrowDown':
+            case 's':
+            case 'S':
+                event.preventDefault();
+                this.makeMove('move_down');
+                break;
+            case 'ArrowLeft':
+            case 'a':
+            case 'A':
+                event.preventDefault();
+                this.makeMove('move_left');
+                break;
+            case 'ArrowRight':
+            case 'd':
+            case 'D':
+                event.preventDefault();
+                this.makeMove('move_right');
+                break;
+            case ' ':
+                event.preventDefault();
+                this.makeMove('shoot');
+                break;
+            case 'g':
+            case 'G':
+                event.preventDefault();
+                this.makeMove('grab');
+                break;
+            case 'c':
+            case 'C':
+                event.preventDefault();
+                this.makeMove('climb');
+                break;
+            case 'r':
+            case 'R':
+                event.preventDefault();
+                this.resetGame();
+                break;
+        }
     }
 }
 
-// Global game instance
-let game;
+// Global UI instance
+let gameUI;
 
-// Initialize game when page loads
+// Initialize UI when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    game = new WumpusWorld();
+    gameUI = new WumpusWorldUI();
 });
 
-// Movement functions (called by buttons)
+// Button event handlers (called by HTML buttons)
 function moveAgent(direction) {
-    if (game) {
-        game.moveAgent(direction);
+    if (gameUI) {
+        gameUI.makeMove(`move_${direction}`);
     }
 }
 
 function shootArrow() {
-    if (game) {
-        game.shootArrow();
+    if (gameUI) {
+        gameUI.makeMove('shoot');
     }
 }
 
 function grabGold() {
-    if (game) {
-        game.grabGold();
+    if (gameUI) {
+        gameUI.makeMove('grab');
     }
 }
 
 function climbOut() {
-    if (game) {
-        game.climbOut();
+    if (gameUI) {
+        gameUI.makeMove('climb');
     }
 }
 
-// Additional utility functions
 function resetGame() {
-    if (game) {
-        game.resetGame();
+    if (gameUI) {
+        gameUI.resetGame();
+    }
+}
+
+function getAIHint() {
+    if (gameUI) {
+        gameUI.getAIHint();
     }
 }
 
 function loadCustomEnvironment(environmentData) {
-    if (game) {
-        game.loadEnvironment(environmentData);
+    if (gameUI) {
+        gameUI.loadCustomEnvironment(environmentData);
     }
 }
 
-// Keyboard controls
-document.addEventListener('keydown', function(event) {
-    if (!game || game.gameStatus !== 'playing') return;
-
-    switch (event.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-            event.preventDefault();
-            moveAgent('up');
-            break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-            event.preventDefault();
-            moveAgent('down');
-            break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-            event.preventDefault();
-            moveAgent('left');
-            break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-            event.preventDefault();
-            moveAgent('right');
-            break;
-        case ' ':
-            event.preventDefault();
-            shootArrow();
-            break;
-        case 'g':
-        case 'G':
-            event.preventDefault();
-            grabGold();
-            break;
-        case 'c':
-        case 'C':
-            event.preventDefault();
-            climbOut();
-            break;
-        case 'r':
-        case 'R':
-            event.preventDefault();
-            resetGame();
-            break;
+// New global functions for game mode control and AI functionality
+function setGameMode(mode) {
+    if (gameUI) {
+        gameUI.setGameMode(mode);
     }
-});
+}
 
-// Example of how to use custom environment (for testing)
+function generateRandomEnvironment() {
+    if (gameUI) {
+        gameUI.generateRandomEnvironment();
+    }
+}
+
+function makeAIMove() {
+    if (gameUI) {
+        gameUI.makeAIMove();
+    }
+}
+
+function autoPlay() {
+    if (gameUI) {
+        gameUI.autoPlay();
+    }
+}
+
+function pauseAI() {
+    if (gameUI) {
+        gameUI.pauseAI();
+    }
+}
+
+// Example of how to use custom environment
 function loadExampleEnvironment() {
     const exampleEnv = {
         wumpus: { x: 5, y: 3 },
