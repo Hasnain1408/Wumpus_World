@@ -257,7 +257,8 @@ class WumpusGame:
         self.board.agent.y = new_y
         
         # Mark cell as visited
-        self.board.board[new_y][new_x]['visited'] = True
+        # self.board.board[new_y][new_x]['visited'] = True
+        self.board.board[new_y][new_x].visited = True
         
         # Update score
         self.score += self.scoring['move']
@@ -266,22 +267,22 @@ class WumpusGame:
         cell = self.board.board[new_y][new_x]
         message = f"Moved {direction}"
         
-        if cell.get('pit', False):
+        if cell.pit:
             self.board.game_over = True
             self.score += self.scoring['death']
             message += " - Fell into pit! Game over!"
-        elif cell.get('wumpus', False):
+        elif cell.wumpus:
             self.board.game_over = True
             self.score += self.scoring['death']
             message += " - Eaten by Wumpus! Game over!"
         else:
             # Add perceptions
             perceptions = []
-            if cell.get('breeze', False):
+            if cell.breeze:
                 perceptions.append('breeze')
-            if cell.get('stench', False):
+            if cell.stench:
                 perceptions.append('stench')
-            if cell.get('glitter', False):
+            if cell.glitter:
                 perceptions.append('glitter')
             
             if perceptions:

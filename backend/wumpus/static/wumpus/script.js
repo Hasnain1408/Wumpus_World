@@ -89,7 +89,7 @@ class WumpusWorldUI {
         
         // Click to dismiss
         notification.addEventListener('click', () => {
-            notification.style.transform = 'translateX(100%)';
+            notification.style.transform = 'translateX()';
             setTimeout(() => {
                 if (container.contains(notification)) {
                     container.removeChild(notification);
