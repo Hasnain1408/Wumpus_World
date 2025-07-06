@@ -1,4 +1,4 @@
-// Wumpus World Frontend Interface - Updated with AI and Random Environment fixes
+// Wumpus World Frontend Interface - Fixed Agent Symbol Movement
 
 class WumpusWorldUI {
     constructor() {
@@ -9,9 +9,64 @@ class WumpusWorldUI {
         this.aiPlaying = false;
         this.aiInterval = null;
         this.moveDelay = 1500; // Delay between AI moves in milliseconds
+        this.csrfToken = null;
         
         this.initializeUI();
+        this.initializeCSRF();
+    }
+
+    async initializeCSRF() {
+        // Try to get CSRF token from multiple sources
+        await this.ensureCSRFToken();
+        // Load game state after CSRF token is available
         this.loadGameState();
+    }
+
+    async ensureCSRFToken() {
+        // Try to get CSRF token from window (if set in template)
+        if (window.csrfToken) {
+            this.csrfToken = window.csrfToken;
+            return;
+        }
+
+        // Try to get from cookie
+        const cookieToken = this.getCSRFTokenFromCookie();
+        if (cookieToken) {
+            this.csrfToken = cookieToken;
+            return;
+        }
+
+        // Try to get from meta tag
+        const metaToken = this.getCSRFTokenFromMeta();
+        if (metaToken) {
+            this.csrfToken = metaToken;
+            return;
+        }
+
+        // Last resort: make a GET request to get CSRF token
+        try {
+            const response = await fetch('/api/csrf-token/', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.csrfToken = data.csrfToken;
+            }
+        } catch (error) {
+            console.error('Failed to get CSRF token:', error);
+        }
+    }
+
+    getCSRFTokenFromCookie() {
+        const cookieValue = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
+        return cookieValue ? cookieValue.pop() : null;
+    }
+
+    getCSRFTokenFromMeta() {
+        const metaTag = document.querySelector('meta[name="csrf-token"]');
+        return metaTag ? metaTag.getAttribute('content') : null;
     }
 
     initializeUI() {
@@ -20,10 +75,10 @@ class WumpusWorldUI {
         this.setupEventListeners();
         this.createNotificationContainer();
         
-        // Generate initial random environment
+        // Generate initial random environment (delayed to ensure CSRF token is ready)
         setTimeout(() => {
             this.generateRandomEnvironment();
-        }, 500);
+        }, 1000);
     }
 
     createNotificationContainer() {
@@ -89,7 +144,7 @@ class WumpusWorldUI {
         
         // Click to dismiss
         notification.addEventListener('click', () => {
-            notification.style.transform = 'translateX()';
+            notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
                 if (container.contains(notification)) {
                     container.removeChild(notification);
@@ -101,22 +156,27 @@ class WumpusWorldUI {
     updateGameInfo() {
         if (!this.gameState) return;
         
-        document.getElementById('score').textContent = this.gameState.score || 0;
-        document.getElementById('arrows').textContent = this.gameState.agent?.arrows || 0;
+        const scoreElement = document.getElementById('score');
+        const arrowsElement = document.getElementById('arrows');
+        const statusElement = document.getElementById('status');
+        
+        if (scoreElement) scoreElement.textContent = this.gameState.score || 0;
+        if (arrowsElement) arrowsElement.textContent = this.gameState.agent?.arrows || 0;
         
         // Update game status
-        const statusElement = document.getElementById('status');
-        if (this.gameState.game_over) {
-            if (this.gameState.game_won) {
-                statusElement.textContent = 'Victory!';
-                statusElement.style.color = '#38a169';
+        if (statusElement) {
+            if (this.gameState.game_over) {
+                if (this.gameState.game_won) {
+                    statusElement.textContent = 'Victory!';
+                    statusElement.style.color = '#38a169';
+                } else {
+                    statusElement.textContent = 'Game Over';
+                    statusElement.style.color = '#e53e3e';
+                }
             } else {
-                statusElement.textContent = 'Game Over';
-                statusElement.style.color = '#e53e3e';
+                statusElement.textContent = 'Playing';
+                statusElement.style.color = '#ffd700';
             }
-        } else {
-            statusElement.textContent = 'Playing';
-            statusElement.style.color = '#ffd700';
         }
     }
 
@@ -128,14 +188,20 @@ class WumpusWorldUI {
     setGameMode(mode) {
         this.gameMode = mode;
         
-        // Update UI
-        document.getElementById('manual-mode').classList.toggle('active', mode === 'manual');
-        document.getElementById('ai-mode').classList.toggle('active', mode === 'ai');
-        document.getElementById('current-mode').textContent = mode === 'manual' ? 'Manual' : 'AI';
+        // Update UI elements if they exist
+        const manualModeElement = document.getElementById('manual-mode');
+        const aiModeElement = document.getElementById('ai-mode');
+        const currentModeElement = document.getElementById('current-mode');
+        const manualControlsElement = document.getElementById('manual-controls');
+        const aiControlsElement = document.getElementById('ai-controls');
+        
+        if (manualModeElement) manualModeElement.classList.toggle('active', mode === 'manual');
+        if (aiModeElement) aiModeElement.classList.toggle('active', mode === 'ai');
+        if (currentModeElement) currentModeElement.textContent = mode === 'manual' ? 'Manual' : 'AI';
         
         // Show/hide appropriate controls
-        document.getElementById('manual-controls').style.display = mode === 'manual' ? 'block' : 'none';
-        document.getElementById('ai-controls').style.display = mode === 'ai' ? 'block' : 'none';
+        if (manualControlsElement) manualControlsElement.style.display = mode === 'manual' ? 'block' : 'none';
+        if (aiControlsElement) aiControlsElement.style.display = mode === 'ai' ? 'block' : 'none';
         
         // Stop AI if switching to manual
         if (mode === 'manual' && this.aiPlaying) {
@@ -151,7 +217,8 @@ class WumpusWorldUI {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                }
+                },
+                credentials: 'include'
             });
             const data = await response.json();
             
@@ -168,6 +235,11 @@ class WumpusWorldUI {
     }
 
     async loadGameState() {
+        // Ensure we have a CSRF token before making the request
+        if (!this.csrfToken) {
+            await this.ensureCSRFToken();
+        }
+
         try {
             const response = await fetch('/api/game-state/', {
                 method: 'POST',
@@ -175,6 +247,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId
                 })
@@ -186,9 +259,12 @@ class WumpusWorldUI {
                 this.gameState = data.game_state;
                 this.renderBoard();
                 this.updateGameInfo();
+            } else {
+                this.showMessage(data.message || 'Failed to load game state', 'error');
             }
         } catch (error) {
             console.error('Error loading game state:', error);
+            this.showMessage('Error loading game state', 'error');
         }
     }
 
@@ -234,10 +310,19 @@ class WumpusWorldUI {
 
         const cellData = this.gameState.board[y][x];
         
-        // Add main content (agent, wumpus, gold, pit)
-        if (cellData.agent) {
+        // Clear previous content
+        mainContent.textContent = '';
+        indicators.innerHTML = '';
+        cell.className = 'cell'; // Reset classes
+        
+        // FIXED: Check if agent is at this position using the agent's coordinates
+        const agentX = this.gameState.agent?.x || 0;
+        const agentY = this.gameState.agent?.y || 0;
+        
+        if (agentX === x && agentY === y) {
             mainContent.textContent = '🤖';
             cell.classList.add('current');
+            console.log(`Agent rendered at (${x}, ${y})`); // Debug log
         } else if (cellData.wumpus && this.gameState.wumpus_alive) {
             mainContent.textContent = this.isCellVisible(x, y) ? '👹' : '';
             if (this.isCellVisible(x, y)) {
@@ -312,6 +397,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     action: action
@@ -322,6 +408,7 @@ class WumpusWorldUI {
             
             if (data.success) {
                 this.gameState = data.game_state;
+                console.log('Game state updated:', this.gameState.agent); // Debug log
                 this.renderBoard();
                 this.updateGameInfo();
                 this.showMessage(data.message);
@@ -340,6 +427,12 @@ class WumpusWorldUI {
     }
 
     getCSRFToken() {
+        // Return the stored CSRF token or try to get it fresh
+        if (this.csrfToken) {
+            return this.csrfToken;
+        }
+
+        // Try to get from cookie as fallback
         const cookieValue = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
         return cookieValue ? cookieValue.pop() : '';
     }
@@ -357,6 +450,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId
                 })
@@ -372,6 +466,7 @@ class WumpusWorldUI {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': this.getCSRFToken(),
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         session_id: this.sessionId,
                         action: hintData.suggestion
@@ -382,6 +477,7 @@ class WumpusWorldUI {
                 
                 if (moveData.success) {
                     this.gameState = moveData.game_state;
+                    console.log('AI move - Game state updated:', this.gameState.agent); // Debug log
                     this.renderBoard();
                     this.updateGameInfo();
                     this.showMessage(`AI made move: ${hintData.suggestion}`, 'info');
@@ -464,6 +560,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId
                 })
@@ -498,6 +595,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     environment: environmentData
@@ -528,6 +626,7 @@ class WumpusWorldUI {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': this.getCSRFToken(),
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId
                 })
