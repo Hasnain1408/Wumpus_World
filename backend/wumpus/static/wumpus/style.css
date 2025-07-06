@@ -19,6 +19,7 @@ body {
 
 .game-container {
     background: rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
     border-radius: 20px;
     padding: 30px;
@@ -191,8 +192,8 @@ body {
 }
 
 .cell.visited {
-    background: linear-gradient(145deg, #4a5568, #2d3748);
-    border-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+    border-color: #48bb78;
 }
 
 .cell.safe {

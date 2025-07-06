@@ -10,6 +10,7 @@ class WumpusWorldUI {
         this.aiInterval = null;
         this.moveDelay = 1500; // Delay between AI moves in milliseconds
         this.csrfToken = null;
+        this.showEnvironment = false; // Toggle for environment visibility
         
         this.initializeUI();
         this.initializeCSRF();
@@ -309,38 +310,47 @@ class WumpusWorldUI {
         if (!this.gameState) return;
 
         const cellData = this.gameState.board[y][x];
-        
-        // Clear previous content
         mainContent.textContent = '';
         indicators.innerHTML = '';
-        cell.className = 'cell'; // Reset classes
-        
-        // FIXED: Check if agent is at this position using the agent's coordinates
+        cell.className = 'cell';
+
         const agentX = this.gameState.agent?.x || 0;
         const agentY = this.gameState.agent?.y || 0;
-        
-        if (agentX === x && agentY === y) {
+        const isCurrent = (agentX === x && agentY === y);
+        const isVisited = this.isCellVisible(x, y);
+
+        // Show agent
+        if (isCurrent) {
             mainContent.textContent = '🤖';
             cell.classList.add('current');
-            console.log(`Agent rendered at (${x}, ${y})`); // Debug log
-        } else if (cellData.wumpus && this.gameState.wumpus_alive) {
-            mainContent.textContent = this.isCellVisible(x, y) ? '👹' : '';
-            if (this.isCellVisible(x, y)) {
+            const direction = this.gameState.agent?.direction || 'right';
+            const directionSymbols = {
+                'right': '→',
+                'left': '←',
+                'up': '↑',
+                'down': '↓'
+            };
+            indicators.innerHTML += `<span title="Facing ${direction}">${directionSymbols[direction]}</span>`;
+            if (cellData.gold) {
+                indicators.innerHTML += '<span title="Glitter - Gold here">✨</span>';
+            }
+        } else if (this.showEnvironment || isVisited) {
+            // Show environment elements if revealed or visited
+            if (cellData.wumpus && this.gameState.wumpus_alive) {
+                mainContent.textContent = '👹';
+                cell.classList.add('danger');
+            } else if (cellData.wumpus && !this.gameState.wumpus_alive) {
+                mainContent.textContent = '💀';
+            } else if (cellData.gold) {
+                mainContent.textContent = '💰';
+            } else if (cellData.pit) {
+                mainContent.textContent = '🕳️';
                 cell.classList.add('danger');
             }
-        } else if (cellData.wumpus && !this.gameState.wumpus_alive) {
-            mainContent.textContent = this.isCellVisible(x, y) ? '💀' : '';
-        } else if (cellData.gold && this.isCellVisible(x, y)) {
-            mainContent.textContent = '💰';
-        } else if (cellData.pit && this.isCellVisible(x, y)) {
-            mainContent.textContent = '🕳️';
-            cell.classList.add('danger');
         }
 
-        // Add indicators (breeze, stench, glitter)
-        if (this.isCellVisible(x, y)) {
-            cell.classList.add('visited');
-            
+        // Show percepts if revealed or visited (but not on agent's current cell)
+        if ((this.showEnvironment || isVisited) && !isCurrent) {
             if (cellData.breeze) {
                 indicators.innerHTML += '<span title="Breeze - Pit nearby">💨</span>';
             }
@@ -352,23 +362,18 @@ class WumpusWorldUI {
             }
         }
 
-        // Add cell state classes
-        if (cellData.visited) {
+        // Only add visited/safe classes for truly visited cells
+        if (isVisited) {
             cell.classList.add('visited');
         }
-        
-        if (this.isCellSafe(x, y) && cellData.visited) {
+        if (this.isCellSafe(x, y) && isVisited) {
             cell.classList.add('safe');
         }
-        
-        // Add coordinates for debugging
         cell.title = `(${x}, ${y})`;
     }
 
     isCellVisible(x, y) {
         if (!this.gameState) return false;
-        
-        // Cell is visible if agent has visited it
         return this.gameState.visited_cells.includes(`${x},${y}`);
     }
 
@@ -701,6 +706,19 @@ class WumpusWorldUI {
                 break;
         }
     }
+
+    toggleEnvironment() {
+        this.showEnvironment = !this.showEnvironment;
+        const toggleBtn = document.getElementById('toggle-environment');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = this.showEnvironment ? '🙈 Hide Environment' : '👁️ Show Environment';
+        }
+        this.renderBoard();
+        this.showMessage(
+            this.showEnvironment ? 'Environment elements are now visible' : 'Environment elements are hidden',
+            'info'
+        );
+    }
 }
 
 // Global UI instance
@@ -782,6 +800,12 @@ function autoPlay() {
 function pauseAI() {
     if (gameUI) {
         gameUI.pauseAI();
+    }
+}
+
+function toggleEnvironment() {
+    if (gameUI) {
+        gameUI.toggleEnvironment();
     }
 }
 
