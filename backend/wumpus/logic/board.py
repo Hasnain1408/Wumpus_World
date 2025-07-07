@@ -1,8 +1,3 @@
-"""
-Wumpus World Board Logic
-Handles the game board state and cell management
-"""
-
 import random
 from typing import Dict, List, Tuple, Optional, Set
 from dataclasses import dataclass, field
@@ -213,7 +208,7 @@ class WumpusBoard:
             self.game_over = True
             return True
         
-        if cell.wumpus and self.wumpus_alive:
+        if cell.wumpus:
             self.agent.alive = False
             self.game_over = True
             return True
@@ -256,10 +251,22 @@ class WumpusBoard:
                 break
             
             # Check for wumpus
-            if self.board[arrow_y][arrow_x].wumpus and self.wumpus_alive:
-                self.wumpus_alive = False
+            if self.board[arrow_y][arrow_x].wumpus:
+                # Kill this wumpus
                 self.board[arrow_y][arrow_x].wumpus = False
-                self.generate_stenches()  # Remove stenches
+                
+                # Check if any wumpus are still alive
+                any_wumpus_alive = False
+                for y in range(self.size):
+                    for x in range(self.size):
+                        if self.board[y][x].wumpus:
+                            any_wumpus_alive = True
+                            break
+                    if any_wumpus_alive:
+                        break
+                
+                self.wumpus_alive = any_wumpus_alive
+                self.generate_stenches()  # Update stenches based on remaining wumpus
                 return True
         
         return False
@@ -322,7 +329,7 @@ class WumpusBoard:
         }
     
     def load_environment(self, environment: Dict) -> bool:
-        """Load environment configuration"""
+        """Simple environment loading for backward compatibility"""
         try:
             # Clear existing environment
             for y in range(self.size):
@@ -337,8 +344,12 @@ class WumpusBoard:
             
             # Place wumpus
             if 'wumpus' in environment:
-                wumpus_pos = environment['wumpus']
-                self.place_wumpus(wumpus_pos['x'], wumpus_pos['y'])
+                wumpus_data = environment['wumpus']
+                if isinstance(wumpus_data, dict):
+                    self.place_wumpus(wumpus_data['x'], wumpus_data['y'])
+                elif isinstance(wumpus_data, list):
+                    for wumpus_pos in wumpus_data:
+                        self.place_wumpus(wumpus_pos['x'], wumpus_pos['y'])
             
             # Place gold
             if 'gold' in environment:

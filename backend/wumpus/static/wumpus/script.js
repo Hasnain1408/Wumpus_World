@@ -1,5 +1,3 @@
-// Wumpus World Frontend Interface - Fixed Agent Symbol Movement
-
 class WumpusWorldUI {
     constructor() {
         this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -623,6 +621,67 @@ class WumpusWorldUI {
         }
     }
 
+    async loadEnvironmentFromFile(filePath = null) {
+        try {
+            const response = await fetch('/api/load-environment-from-file/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    file_path: filePath
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from file successfully', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading environment from file:', error);
+            this.showMessage('Error loading environment from file', 'error');
+        }
+    }
+
+    async loadDefaultEnvironment() {
+        try {
+            const response = await fetch('/api/load-default-environment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from wumpus.txt', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading default environment:', error);
+            this.showMessage('Error loading wumpus.txt', 'error');
+        }
+    }
+
     async getAIHint() {
         try {
             const response = await fetch('/api/ai-hint/', {
@@ -806,6 +865,18 @@ function pauseAI() {
 function toggleEnvironment() {
     if (gameUI) {
         gameUI.toggleEnvironment();
+    }
+}
+
+function loadEnvironmentFromFile(filePath = null) {
+    if (gameUI) {
+        gameUI.loadDefaultEnvironment();
+    }
+}
+
+function loadDefaultEnvironment() {
+    if (gameUI) {
+        gameUI.loadDefaultEnvironment();
     }
 }
 

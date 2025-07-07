@@ -308,22 +308,13 @@ def load_environment(request):
                 'message': 'Environment data is required'
             }, status=400)
         
-        # Validate environment data
-        validation_result = validate_environment(environment)
-        
-        if not validation_result['valid']:
-            return JsonResponse({
-                'success': False,
-                'message': validation_result['error']
-            }, status=400)
-        
         # Get or create game instance
         if session_id not in game_instances:
             game_instances[session_id] = WumpusGame()
         
         game = game_instances[session_id]
         
-        # Load environment
+        # Load the environment
         success = game.load_environment(environment)
         
         if success:
@@ -336,7 +327,7 @@ def load_environment(request):
             return JsonResponse({
                 'success': False,
                 'message': 'Failed to load environment'
-            }, status=500)
+            }, status=400)
             
     except json.JSONDecodeError:
         return JsonResponse({
@@ -347,6 +338,48 @@ def load_environment(request):
         return JsonResponse({
             'success': False,
             'message': f'Error loading environment: {str(e)}'
+        }, status=500)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def load_default_environment(request):
+    """
+    API endpoint to load the default environment from wumpus.txt
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id', 'default')
+        
+        # Get or create game instance
+        if session_id not in game_instances:
+            game_instances[session_id] = WumpusGame()
+        
+        game = game_instances[session_id]
+        
+        # Load from wumpus.txt
+        success = game.load_default_environment()
+        
+        if success:
+            return JsonResponse({
+                'success': True,
+                'message': 'Environment loaded from wumpus.txt',
+                'game_state': game.get_game_state()
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to load wumpus.txt'
+            }, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error: {str(e)}'
         }, status=500)
 
 @csrf_exempt
@@ -666,4 +699,4 @@ def handler404(request, exception):
 
 def handler500(request):
     """Custom 500 error handler"""
-    return render(request, 'wumpus/500.html', status=500) 
+    return render(request, 'wumpus/500.html', status=500)
