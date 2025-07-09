@@ -44,6 +44,8 @@ def make_move(request):
         # Get or create game instance
         if session_id not in game_instances:
             game_instances[session_id] = WumpusGame()
+            # Automatically load default environment for new games
+            game_instances[session_id].load_default_environment()
         
         game = game_instances[session_id]
         
@@ -161,6 +163,8 @@ def get_ai_hint(request):
         # Get game instance
         if session_id not in game_instances:
             game_instances[session_id] = WumpusGame()
+            # Automatically load default environment for new games
+            game_instances[session_id].load_default_environment()
         
         game = game_instances[session_id]
         
@@ -233,8 +237,12 @@ def reset_game(request):
         # Reset game instance
         if session_id in game_instances:
             game_instances[session_id].reset_game()
+            # Load default environment after reset
+            game_instances[session_id].load_default_environment()
         else:
             game_instances[session_id] = WumpusGame()
+            # Automatically load default environment for new games
+            game_instances[session_id].load_default_environment()
         
         # Reset manual player if exists
         if session_id in manual_players:
@@ -257,6 +265,7 @@ def reset_game(request):
             'message': f'Error resetting game: {str(e)}'
         }, status=500)
 
+@csrf_exempt
 @require_http_methods(["GET", "POST"])
 def get_game_state(request):
     """
@@ -272,6 +281,8 @@ def get_game_state(request):
         # Get game instance
         if session_id not in game_instances:
             game_instances[session_id] = WumpusGame()
+            # Automatically load default environment for new games
+            game_instances[session_id].load_default_environment()
         
         game = game_instances[session_id]
         
@@ -311,6 +322,7 @@ def load_environment(request):
         # Get or create game instance
         if session_id not in game_instances:
             game_instances[session_id] = WumpusGame()
+            # Note: Don't auto-load default here since we're loading custom environment
         
         game = game_instances[session_id]
         

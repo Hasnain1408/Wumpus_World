@@ -240,7 +240,8 @@ class WumpusWorldUI {
         }
 
         try {
-            const response = await fetch('/api/game-state/', {
+            // Try POST request first
+            let response = await fetch('/api/game-state/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -251,6 +252,15 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
+            
+            // If POST fails due to CSRF issues, try GET request as fallback
+            if (!response.ok && response.status === 403) {
+                console.log('POST request failed, trying GET request...');
+                response = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+            }
             
             const data = await response.json();
             
@@ -263,7 +273,29 @@ class WumpusWorldUI {
             }
         } catch (error) {
             console.error('Error loading game state:', error);
-            this.showMessage('Error loading game state', 'error');
+            
+            // Final fallback: try GET request without CSRF
+            try {
+                console.log('Trying GET request as final fallback...');
+                const fallbackResponse = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const fallbackData = await fallbackResponse.json();
+                
+                if (fallbackData.success) {
+                    this.gameState = fallbackData.game_state;
+                    this.renderBoard();
+                    this.updateGameInfo();
+                    this.showMessage('Game state loaded successfully', 'success');
+                } else {
+                    this.showMessage('Failed to load game state', 'error');
+                }
+            } catch (fallbackError) {
+                console.error('Fallback GET request also failed:', fallbackError);
+                this.showMessage('Error loading game state', 'error');
+            }
         }
     }
 

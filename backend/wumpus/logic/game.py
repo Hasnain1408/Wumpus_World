@@ -224,7 +224,7 @@ class WumpusGame:
         try:
             if file_path is None:
                 current_dir = Path(__file__).parent
-                file_path = current_dir / "wumpus.txt"
+                file_path = current_dir / "wumpus1.txt"
             
             if not os.path.exists(file_path):
                 print(f"Error: File {file_path} not found")
