@@ -104,18 +104,20 @@ class WumpusGame:
         return self.board.move_agent(self.board.agent.direction)
     
     def turn_left(self) -> bool:
-        """Turn agent left"""
-        directions = ['right', 'up', 'left', 'down']
+        """Turn agent left (counter-clockwise)"""
+        # Fixed direction order: up, right, down, left (clockwise)
+        directions = ['up', 'right', 'down', 'left']
         current_index = directions.index(self.board.agent.direction)
-        new_direction = directions[(current_index - 1) % 4]
+        new_direction = directions[(current_index - 1) % 4]  # Counter-clockwise
         self.board.turn_agent(new_direction)
         return True
     
     def turn_right(self) -> bool:
-        """Turn agent right"""
-        directions = ['right', 'up', 'left', 'down']
+        """Turn agent right (clockwise)"""
+        # Fixed direction order: up, right, down, left (clockwise)
+        directions = ['up', 'right', 'down', 'left']
         current_index = directions.index(self.board.agent.direction)
-        new_direction = directions[(current_index + 1) % 4]
+        new_direction = directions[(current_index + 1) % 4]  # Clockwise
         self.board.turn_agent(new_direction)
         return True
     
@@ -330,7 +332,6 @@ class WumpusGame:
         self.board.agent.y = new_y
         
         # Mark cell as visited
-        # self.board.board[new_y][new_x]['visited'] = True
         self.board.board[new_y][new_x].visited = True
         
         # Update score
@@ -379,6 +380,113 @@ class WumpusGame:
     def get_dangerous_cells(self) -> List[Tuple[int, int]]:
         """Get list of cells that are known to be dangerous"""
         return self.inference_engine.get_dangerous_cells()
+    
+    def get_direction_to_cell(self, target_x: int, target_y: int) -> Optional[str]:
+        """Get the direction needed to move to a target cell from current position"""
+        current_x, current_y = self.board.agent.x, self.board.agent.y
+        
+        # Calculate direction needed
+        if target_x > current_x:
+            return 'right'
+        elif target_x < current_x:
+            return 'left'
+        elif target_y > current_y:
+            return 'down'
+        elif target_y < current_y:
+            return 'up'
+        else:
+            return None  # Same position
+    
+    def get_turn_actions_to_face_direction(self, target_direction: str) -> List[str]:
+        """Get the sequence of turn actions needed to face a target direction"""
+        if target_direction is None:
+            return []
+        
+        current_direction = self.board.agent.direction
+        if current_direction == target_direction:
+            return []
+        
+        # Direction order: up, right, down, left (clockwise)
+        directions = ['up', 'right', 'down', 'left']
+        current_index = directions.index(current_direction)
+        target_index = directions.index(target_direction)
+        
+        # Calculate shortest rotation
+        diff = (target_index - current_index) % 4
+        
+        if diff == 1:  # Turn right once
+            return ['turn_right']
+        elif diff == 2:  # Turn around (2 turns, prefer right)
+            return ['turn_right', 'turn_right']
+        elif diff == 3:  # Turn left once
+            return ['turn_left']
+        else:
+            return []
+    
+    def get_enhanced_ai_suggestion(self) -> Optional[str]:
+        """Enhanced AI suggestion that handles movement and turning properly"""
+        if self.board.game_over:
+            return None
+        
+        try:
+            # Get safe cells from inference engine
+            safe_cells = self.inference_engine.get_safe_cells()
+            
+            # Find the best safe cell to move to
+            current_x, current_y = self.board.agent.x, self.board.agent.y
+            
+            # Look for adjacent safe cells
+            adjacent_cells = [
+                (current_x, current_y - 1, 'up'),
+                (current_x + 1, current_y, 'right'),
+                (current_x, current_y + 1, 'down'),
+                (current_x - 1, current_y, 'left')
+            ]
+            
+            # Filter valid adjacent cells
+            valid_adjacent = []
+            for x, y, direction in adjacent_cells:
+                if (0 <= x < self.board.size and 
+                    0 <= y < self.board.size and 
+                    (x, y) in [cell[0] for cell in safe_cells]):
+                    valid_adjacent.append((x, y, direction))
+            
+            if valid_adjacent:
+                # Choose the first safe adjacent cell
+                target_x, target_y, needed_direction = valid_adjacent[0]
+                
+                # Check if we're already facing the right direction
+                current_direction = self.board.agent.direction
+                if current_direction == needed_direction:
+                    return 'forward'
+                else:
+                    # Get turn actions needed
+                    turn_actions = self.get_turn_actions_to_face_direction(needed_direction)
+                    if turn_actions:
+                        return turn_actions[0]  # Return the first turn action
+            
+            # If no safe adjacent cells, try other actions
+            possible_actions = self.get_possible_actions()
+            
+            # Check if we can grab gold
+            if 'grab' in possible_actions:
+                return 'grab'
+            
+            # Check if we should climb out (if we have gold)
+            if 'climb' in possible_actions and self.board.agent.has_gold:
+                return 'climb'
+            
+            # Default to exploring
+            if 'forward' in possible_actions:
+                return 'forward'
+            elif 'turn_right' in possible_actions:
+                return 'turn_right'
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting enhanced AI suggestion: {e}")
+            return None
     
     def get_statistics(self) -> Dict:
         """Get game statistics"""
