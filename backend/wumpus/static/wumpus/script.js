@@ -8,7 +8,7 @@ class WumpusWorldUI {
         this.aiInterval = null;
         this.moveDelay = 1500; // Delay between AI moves in milliseconds
         this.csrfToken = null;
-        this.showEnvironment = false; // Toggle for environment visibility
+        this.showEnvironment = false;
         
         this.initializeUI();
         this.initializeCSRF();
