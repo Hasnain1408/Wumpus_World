@@ -118,7 +118,7 @@ def auto_play_game(request):
     try:
         data = json.loads(request.body)
         session_id = data.get('session_id', 'default')
-        strategy = data.get('strategy', 'logical')
+        strategy = data.get('strategy', 'random')
         environment = data.get('environment')
         
         # Get or create auto player instance

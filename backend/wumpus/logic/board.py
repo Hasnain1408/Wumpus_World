@@ -223,7 +223,10 @@ class WumpusBoard:
     
     def turn_agent(self, direction: str):
         """Turn agent to face given direction"""
-        self.agent.direction = direction
+        if direction in ['right', 'up', 'left', 'down']:
+            self.agent.direction = direction
+        else:
+            print(f"Invalid direction: {direction}")
     
     def shoot_arrow(self, direction: str) -> bool:
         """Shoot arrow in given direction"""
