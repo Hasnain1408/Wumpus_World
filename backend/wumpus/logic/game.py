@@ -43,7 +43,10 @@ class WumpusGame:
         # Handle direct movement actions
         if action.startswith('move_'):
             direction = action.split('_')[1]
-            return self.move_agent(direction)
+            result = self.move_agent(direction)
+            # Print knowledge after direct movement
+            self.inference_engine.print_knowledge_state()  # <-- ADDED
+            return result
         
         # Create move object
         move = Move(action, direction, self.board.agent.x, self.board.agent.y)
@@ -89,6 +92,9 @@ class WumpusGame:
         
         # Update inference engine
         self.inference_engine.update_knowledge(move)
+        
+        # PRINT KNOWLEDGE STATE AFTER UPDATING (NEW)
+        self.inference_engine.print_knowledge_state()  # <-- ADDED
         
         # Check game status
         if self.board.is_game_won():

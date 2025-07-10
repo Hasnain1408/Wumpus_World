@@ -39,7 +39,7 @@ class AgentState:
 class WumpusBoard:
     """Main board class for Wumpus World"""
     
-    def __init__(self, size: int = 10):
+    def __init__(self, size: int = 5):
         self.size = size
         self.board: List[List[Cell]] = []
         self.agent = AgentState()

@@ -62,9 +62,9 @@ class LogicalInference:
         self.knowledge_base[position].confidence = min(self.knowledge_base[position].confidence, confidence)
         
         if self.debug:
-            print(f"logical_inference.add_knowledge() ->  ")
-            print(f"Added knowledge: {position} -> {facts}")
-    
+            #print(f"logical_inference.add_knowledge() ->  ")
+            #print(f"Added knowledge: {position} -> {facts}")
+            pass
     def update_knowledge(self, move):
         """Update knowledge base after a move"""
         if not move or not hasattr(move, 'result') or not move.result:
@@ -78,10 +78,10 @@ class LogicalInference:
             percepts = self.board.get_percepts()
         
         if self.debug:
-            print(f"logical_inference.update_knowledge() -> ")
-            print(f"Updating knowledge for position {current_pos} with percepts: {percepts}")
-            print(f"Agent direction: {self.board.agent.direction}")
-        
+            #print(f"logical_inference.update_knowledge() -> ")
+            #print(f"Updating knowledge for position {current_pos} with percepts: {percepts}")
+            #print(f"Agent direction: {self.board.agent.direction}")
+            pass
         # Add current position to visited and safe
         self.safe_cells.add(current_pos)
         self.safe_from_pits.add(current_pos)
@@ -123,10 +123,11 @@ class LogicalInference:
                     adj_pos not in self.dangerous_cells):
                     self.frontier.add(adj_pos)
                     if self.debug:
-                        print(f"logical_inference.update_frontier() -> {adj_pos} - added to frontier")
-        
+                        #print(f"logical_inference.update_frontier() -> {adj_pos} - added to frontier")
+                        pass
         if self.debug:
-            print(f"-------------------------------------Current frontier-----------------------: {self.frontier}")
+            pass
+            #print(f"-------------------------------------Current frontier-----------------------: {self.frontier}")
 
     def apply_logical_rules(self, position: Tuple[int, int], percepts: Dict[str, bool]):
         """Apply logical inference rules"""
@@ -134,35 +135,39 @@ class LogicalInference:
         adjacent_cells = self.board.get_adjacent_positions(x, y)
         
         if self.debug:
-            print(f"-----------------------   logical_inference.apply_logical_rules() ->    ---------------------------")
-            print(f"Applying logical rules at {position}")
-            print(f"Adjacent cells: {adjacent_cells}")
+            pass
+            #print(f"-----------------------   logical_inference.apply_logical_rules() ->    ---------------------------")
+            #print(f"Applying logical rules at {position}")
+            #print(f"Adjacent cells: {adjacent_cells}")
         
         # Rule 1: If no breeze, adjacent cells are safe from pits
         if not percepts.get('breeze', False):
-            print(f"   Rule 1 -> ")
+            #print(f"   Rule 1 -> ")
+            pass
             for adj_pos in adjacent_cells:
                 if adj_pos not in self.board.visited_cells:
                     self.safe_from_pits.add(adj_pos)
                     self.add_knowledge(adj_pos, {'safe_from_pit': True})
                     self.possible_pits.discard(adj_pos)
                     if self.debug:
-                        print(f"No breeze detected - marking {adj_pos} as safe from pits")
+                        pass
+                        #print(f"No breeze detected - marking {adj_pos} as safe from pits")
         
         # Rule 2: If no stench, adjacent cells are safe from wumpus
         if not percepts.get('stench', False):
-            print(f"   Rule 2 -> ")
+            #print(f"   Rule 2 -> ")
             for adj_pos in adjacent_cells:
                 if adj_pos not in self.board.visited_cells:
                     self.safe_from_wumpus.add(adj_pos)
                     self.add_knowledge(adj_pos, {'safe_from_wumpus': True})
                     self.possible_wumpus.discard(adj_pos)
                     if self.debug:
-                        print(f"No stench detected - marking {adj_pos} as safe from wumpus")
+                        pass
+                        #print(f"No stench detected - marking {adj_pos} as safe from wumpus")
         
         # Rule 3: If breeze, add constraint that at least one adjacent cell has a pit
         if percepts.get('breeze', False):
-            print(f"   Rule 3 -> ")
+            #print(f"   Rule 3 -> ")
             unvisited_adjacent = [pos for pos in adjacent_cells if pos not in self.board.visited_cells]
             unvisited_adjacent = [pos for pos in unvisited_adjacent if pos not in self.safe_from_pits]
             
@@ -170,7 +175,8 @@ class LogicalInference:
                 constraint = (position, tuple(sorted(unvisited_adjacent)))
                 if constraint not in self.breeze_constraints:
                     if self.debug:
-                        print(f"Breeze detected - adding NEW pit constraint for {unvisited_adjacent}")
+                        pass
+                        #print(f"Breeze detected - adding NEW pit constraint for {unvisited_adjacent}")
                     
                     # Add to possible pits
                     for adj_pos in unvisited_adjacent:
@@ -181,11 +187,12 @@ class LogicalInference:
                     self.breeze_constraints.add(constraint)
                 else:
                     if self.debug:
-                        print(f"Breeze constraint already exists for {position}")
+                        #print(f"Breeze constraint already exists for {position}")
+                        pass
         
         # Rule 4: If stench, add constraint that at least one adjacent cell has wumpus
         if percepts.get('stench', False) and self.board.wumpus_alive:
-            print(f"   Rule 4 -> ")
+            #print(f"   Rule 4 -> ")
             unvisited_adjacent = [pos for pos in adjacent_cells if pos not in self.board.visited_cells]
             unvisited_adjacent = [pos for pos in unvisited_adjacent if pos not in self.safe_from_wumpus]
             
@@ -193,7 +200,8 @@ class LogicalInference:
                 constraint = (position, tuple(sorted(unvisited_adjacent)))
                 if constraint not in self.stench_constraints:
                     if self.debug:
-                        print(f"Stench detected - adding NEW wumpus constraint for {unvisited_adjacent}")
+                        #print(f"Stench detected - adding NEW wumpus constraint for {unvisited_adjacent}")
+                        pass
                     
                     # Add to possible wumpus
                     for adj_pos in unvisited_adjacent:
@@ -204,12 +212,14 @@ class LogicalInference:
                     self.stench_constraints.add(constraint)
                 else:
                     if self.debug:
-                        print(f"Stench constraint already exists for {position}")
+                        #print(f"Stench constraint already exists for {position}")
+                        pass
     
     def solve_constraints(self):
         """Solve constraints using constraint satisfaction"""
         if self.debug:
-            print("logical_inference.solve_constraints() -> ")
+            #print("logical_inference.solve_constraints() -> ")
+            pass
         
         # Solve pit constraints
         self.solve_pit_constraints()
@@ -222,24 +232,25 @@ class LogicalInference:
     
     def solve_pit_constraints(self):
         """Solve pit location constraints using constraint satisfaction"""
-        print(f"logical_inference.solve_pit_constraints() -> ")
+        #print(f"logical_inference.solve_pit_constraints() -> ")
         if not self.breeze_constraints:
             return
         
         if self.debug:
-            print(f"Solving {len(self.breeze_constraints)} pit constraints")
+            pass
+            #print(f"Solving {len(self.breeze_constraints)} pit constraints")
         
         # Get all possible pit locations
         all_possible_pits = set()
         for _, adjacent_cells in self.breeze_constraints:
             all_possible_pits.update(adjacent_cells)
 
-        print(f"---------Breeze Constraints--------- : {self.breeze_constraints}")
-        print(f"------Possible pit locations before filtering ---- : {all_possible_pits}")
+        #print(f"---------Breeze Constraints--------- : {self.breeze_constraints}")
+        #print(f"------Possible pit locations before filtering ---- : {all_possible_pits}")
         
         # Remove cells that are already known to be safe from pits
         all_possible_pits = {pos for pos in all_possible_pits if pos not in self.safe_from_pits}
-        print(f"------Possible pit locations after filtering ---- : {all_possible_pits}")
+        #print(f"------Possible pit locations after filtering ---- : {all_possible_pits}")
         
         if not all_possible_pits:
             return
@@ -256,7 +267,8 @@ class LogicalInference:
                     valid_assignments.append(set(pit_combination))
         
         if self.debug:
-            print(f"Found {len(valid_assignments)} valid pit assignments")
+            #print(f"Found {len(valid_assignments)} valid pit assignments")
+            pass
         
         # Find cells that must be pits (in all valid assignments)
         if valid_assignments:
@@ -266,7 +278,8 @@ class LogicalInference:
                 self.dangerous_cells.add(pit_pos)
                 self.add_knowledge(pit_pos, {'pit': True, 'dangerous': True})
                 if self.debug:
-                    print(f"Definite pit found at {pit_pos}")
+                    pass
+                    #print(f"Definite pit found at {pit_pos}")
             
             # Find cells that cannot be pits (not in any valid assignment)
             all_in_assignments = set.union(*valid_assignments) if valid_assignments else set()
@@ -276,16 +289,18 @@ class LogicalInference:
                 self.add_knowledge(safe_pos, {'safe_from_pit': True})
                 self.possible_pits.discard(safe_pos)
                 if self.debug:
-                    print(f"Cell {safe_pos} is safe from pits")
+                    pass
+                    #print(f"Cell {safe_pos} is safe from pits")
     
     def solve_wumpus_constraints(self):
         """Solve wumpus location constraints"""
-        print("logical_inference.solve_wumpus_constraints() -> ")
+        #print("logical_inference.solve_wumpus_constraints() -> ")
         if not self.stench_constraints or not self.board.wumpus_alive:
             return
         
         if self.debug:
-            print(f"Solving {len(self.stench_constraints)} wumpus constraints")
+            #print(f"Solving {len(self.stench_constraints)} wumpus constraints")
+            pass
         
         # Get all possible wumpus locations
         all_possible_wumpus = set()
@@ -344,9 +359,9 @@ class LogicalInference:
     
     def update_safe_cells(self):
         """Update safe cells based on current knowledge"""
-        print("logical_inference.update_safe_cells() -> ")
-        print(f"Safe from pits: {self.safe_from_pits}")
-        print(f"Safe from wumpus: {self.safe_from_wumpus}")
+        #print("logical_inference.update_safe_cells() -> ")
+        #print(f"Safe from pits: {self.safe_from_pits}")
+        #print(f"Safe from wumpus: {self.safe_from_wumpus}")
         
         # A cell is only safe if it's safe from BOTH pits AND wumpus
         for pos in self.frontier:
@@ -357,7 +372,8 @@ class LogicalInference:
                     self.safe_cells.add(pos)
                     self.add_knowledge(pos, {'safe': True})
                     if self.debug:
-                        print(f"Cell {pos} is TRULY SAFE (safe from both pits and wumpus)")
+                        pass
+                        #print(f"Cell {pos} is TRULY SAFE (safe from both pits and wumpus)")
             else:
                 # Remove from safe cells if it's not completely safe
                 if pos in self.safe_cells:
@@ -365,14 +381,14 @@ class LogicalInference:
                     if self.debug:
                         pit_safe = pos in self.safe_from_pits
                         wumpus_safe = pos in self.safe_from_wumpus
-                        print(f"Cell {pos} REMOVED from safe cells - pit_safe: {pit_safe}, wumpus_safe: {wumpus_safe}")
+                        #print(f"Cell {pos} REMOVED from safe cells - pit_safe: {pit_safe}, wumpus_safe: {wumpus_safe}")
                 else:
                     if self.debug:
                         pit_safe = pos in self.safe_from_pits
                         wumpus_safe = pos in self.safe_from_wumpus
-                        print(f"Cell {pos} is NOT completely safe - pit_safe: {pit_safe}, wumpus_safe: {wumpus_safe}")
+                        #print(f"Cell {pos} is NOT completely safe - pit_safe: {pit_safe}, wumpus_safe: {wumpus_safe}")
         
-        print(f"----------------------------------------------------------------------   Current safe cells: ---{self.safe_cells}")
+        #print(f"----------------------------------------------------------------------   Current safe cells: ---{self.safe_cells}")
     
     def is_cell_completely_safe(self, position: Tuple[int, int]) -> bool:
         """
@@ -395,73 +411,75 @@ class LogicalInference:
         return (position in self.safe_from_pits and 
                 position in self.safe_from_wumpus)
     
+    def manhattan_distance(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> int:
+        """Calculate Manhattan distance between two positions"""
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
     def get_safest_move(self) -> Optional[str]:
-        """Get the safest possible move - FIXED to only allow completely safe moves"""
+        """Get the safest move using existing risk calculation functions"""
         agent_pos = (self.board.agent.x, self.board.agent.y)
         
-        # Check if we can grab gold
+        # 1. Priority checks (unchanged)
         if self.board.get_percepts().get('glitter', False):
             return 'grab'
-        
-        # Check if we should climb out
         if (self.board.agent.has_gold and 
             agent_pos == (0, self.board.size - 1)):
             return 'climb'
+
+
+        # 2. Risk-aware movement analysis
+        movement_options = []
         
-        # FIXED: Only consider completely safe moves
-        safe_adjacent = []
-        for adj_pos in self.board.get_adjacent_positions(agent_pos[0], agent_pos[1]):
-            # CRITICAL FIX: Use is_cell_completely_safe instead of just checking self.safe_cells
-            if (adj_pos not in self.board.visited_cells and 
-                self.is_cell_completely_safe(adj_pos)):
-                safe_adjacent.append(adj_pos)
-        
-        if not safe_adjacent:
-            if self.debug:
-                print("logical_inference.get_safest_move() -> ")
-                print("No safe adjacent cells found!")
+        for adj_pos in self.board.get_adjacent_positions(*agent_pos):
+            print("adj position", adj_pos)
+            if adj_pos in self.board.visited_cells:
+
+                pass
                 
-                # Debug: Show why each adjacent cell is not safe
-                for adj_pos in self.board.get_adjacent_positions(agent_pos[0], agent_pos[1]):
-                    if adj_pos not in self.board.visited_cells:
-                        is_pit_safe = adj_pos in self.safe_from_pits
-                        is_wumpus_safe = adj_pos in self.safe_from_wumpus
-                        is_possible_pit = adj_pos in self.possible_pits
-                        is_possible_wumpus = adj_pos in self.possible_wumpus
-                        is_dangerous = adj_pos in self.dangerous_cells
-                        
-                        print(f"  {adj_pos}: pit_safe={is_pit_safe}, wumpus_safe={is_wumpus_safe}, "
-                              f"possible_pit={is_possible_pit}, possible_wumpus={is_possible_wumpus}, "
-                              f"dangerous={is_dangerous}")
-                        
-                        if not self.is_cell_completely_safe(adj_pos):
-                            print(f"    -> NOT SAFE: Cannot move to {adj_pos}")
-                        
+            # Use existing risk calculation functions
+            risk = self.calculate_risk(adj_pos)
+            movement_options.append((adj_pos, risk))
+
+        # 3. Decision logic with risk thresholds
+        if not movement_options:
             return None
+
+        # Categorize by risk level
+        safe_moves = [pos for pos, risk in movement_options if risk < 0.4]
+        print("safe moves",safe_moves)
+        risky_moves = [pos for pos, risk in movement_options if 0.4 <= risk < 0.7]
+        print("risky moves", risky_moves)
         
-        # Choose the first safe cell (they're all equally safe)
-        best_cell = safe_adjacent[0]
-        
-        # Get direction to move to the best cell
-        direction = self.get_direction_to_position(agent_pos, best_cell)
-        
-        # Debug output
-        if self.debug:
-            print(f"logical_inference.get_safest_move() -> ")
-            print(f"Agent position: {agent_pos}, Direction: {self.board.agent.direction}")
-            print(f"Completely safe cells: {safe_adjacent}")
-            print(f"Chosen cell: {best_cell}, Direction to move: {direction}")
-        
-        # If already facing correct direction, move forward
-        if direction == self.board.agent.direction:
+        # 4. Action selection
+        if self.board.agent.has_gold and safe_moves:
+            target_pos = min(safe_moves, key=lambda pos: self.manhattan_distance([0,9],pos))
+        elif safe_moves:
+            target_pos = min(safe_moves, key=lambda pos: self.calculate_risk(pos))
+        elif risky_moves and self.board.agent.arrows > 0:
+            # For risky moves, consider shooting first if facing a high-risk cell
+            most_dangerous = max(risky_moves, key=lambda pos: self.calculate_wumpus_probability(pos))
+            if (self.calculate_wumpus_probability(most_dangerous) > 0.5 and 
+                self.is_facing(most_dangerous)):
+                return 'shoot'
+            target_pos = min(risky_moves, key=lambda pos: self.calculate_risk(pos))
+        else:
+            return None
+        print("target_pos",target_pos)
+
+        # 5. Generate movement command
+        required_dir = self.get_direction_to_position(agent_pos, target_pos)
+        if required_dir == self.board.agent.direction:
             return 'forward'
-        
-        # Otherwise, get the turn command
-        turn_command = self.get_turn_to_direction(self.board.agent.direction, direction)
-        if self.debug:
-            print(f"Need to turn from {self.board.agent.direction} to {direction}: {turn_command}")
-        
-        return turn_command
+        return self.get_turn_to_direction(self.board.agent.direction, required_dir)
+
+    def is_facing(self, pos: Tuple[int, int]) -> bool:
+        """Check if agent is facing the position (using existing direction logic)"""
+        dx = pos[0] - self.board.agent.x
+        dy = pos[1] - self.board.agent.y
+        return ((dx > 0 and self.board.agent.direction == 'right') or
+                (dx < 0 and self.board.agent.direction == 'left') or
+                (dy > 0 and self.board.agent.direction == 'down') or
+                (dy < 0 and self.board.agent.direction == 'up'))
     
     def get_direction_to_position(self, from_pos: Tuple[int, int], to_pos: Tuple[int, int]) -> str:
         """Get direction to move from one position to another"""
@@ -496,7 +514,8 @@ class LogicalInference:
         
         if diff == 0:
             if self.debug:
-                print("Already facing the right direction")
+                #print("Already facing the right direction")
+                pass
             return 'forward'
         elif diff == 1:
             return 'turn_right'
@@ -509,8 +528,10 @@ class LogicalInference:
     
     def calculate_risk(self, position: Tuple[int, int]) -> float:
         """Calculate risk score for a position (0 = safe, 1 = definitely dangerous)"""
-        if position in self.safe_cells:
+        if position in self.safe_cells and position not in self.board.visited_cells:
             return 0.0
+        if position in self.safe_cells:
+            return 0.1
         if position in self.dangerous_cells:
             return 1.0
         
@@ -580,6 +601,25 @@ class LogicalInference:
         print(f"Breeze constraints: {len(self.breeze_constraints)}")
         print(f"Stench constraints: {len(self.stench_constraints)}")
         print("========================\n")
+        self.print_knowledge_base()
+        print("========================\n")
+
+        
+
+    def print_knowledge_base(self):
+        """Prints the raw knowledge_base dictionary with detailed cell knowledge"""
+        print("\n=== KNOWLEDGE BASE DUMP ===")
+        print(f"{'Position':<8} | {'Facts':<45} | {'Confidence'}")
+        print("-" * 70)
+        
+        for position, knowledge in self.knowledge_base.items():
+            x, y = position
+            facts_str = ", ".join([f"{k}:{v}" for k, v in knowledge.facts.items()])
+            print(f"({x},{y})    | {facts_str:<45} | {knowledge.confidence:.2f}")
+        
+        print("=" * 70 + "\n")
+
+
     
     # Keep all other methods from the original class for compatibility
     def get_safe_cells(self) -> List[Tuple[int, int]]:
