@@ -416,72 +416,86 @@ class LogicalInference:
         return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
     def get_safest_move(self) -> Optional[str]:
-        """Get safest move using A* pathfinding to target optimal safe cells"""
+        """Get safest move with optimized gold retrieval"""
         agent_pos = (self.board.agent.x, self.board.agent.y)
         
-        # 1. Priority checks (gold/climb)
+        # 1. Priority actions (gold/climb)
         if self.board.get_percepts().get('glitter', False):
             return 'grab'
-        if self.board.agent.has_gold and agent_pos == (0, self.board.size - 1):
-            return 'climb'
+        
+        # Special case: if holding gold, focus exclusively on going home
+        if self.board.agent.has_gold:
+            home_pos = (0, self.board.size - 1)
+            if agent_pos == home_pos:
+                return 'climb'
+            
+            # Find safest path home using strict A*
+            path = self.a_star_search(agent_pos, home_pos)
+            if path:
+                return self.get_move_from_path(agent_pos, path)
+            
+            # If no safe path exists, try riskier path home
+            risky_path = self.risky_a_star_search(agent_pos, home_pos)
+            if risky_path:
+                # Shoot any blocking Wumpus first
+                next_pos = risky_path[1]
+                if (self.is_facing(next_pos) and
+                    self.calculate_wumpus_probability(next_pos) > 0.5 and
+                    self.board.agent.arrows > 0):
+                    return 'shoot'
+                return self.get_move_from_path(agent_pos, risky_path)
+            
+            return None  # Can't find any path home
 
-        # 2. Find all reachable safe unvisited cells using A*
-        safe_targets = [
-            pos for pos in self.knowledge_base.keys()
-            if not self.knowledge_base[pos].facts.get('visited', False)
-            and self.is_cell_completely_safe(pos)
+        # 2. Normal exploration logic (when not holding gold)
+        unvisited = [
+            pos for pos, knowledge in self.knowledge_base.items()
+            if not knowledge.facts.get('visited', False)
         ]
         
-        # 3. Pathfinding to best target
-        if safe_targets:
-            if self.board.agent.has_gold:
-                # Find path to exit (0,9) through safe cells
-                path = self.a_star_search(agent_pos, (0, self.board.size-1))
-            else:
-                # Find path to closest safe unvisited cell
-                safe_targets.sort(key=lambda p: (
-                    self.calculate_risk(p),
-                    self.manhattan_distance(agent_pos, p)
-                ))
-                for target in safe_targets:
-                    path = self.a_star_search(agent_pos, target)
-                    if path:
-                        break
-        
-        # 4. If no safe paths, consider risky moves as last resort
-        if not safe_targets or not path:
-            risky_targets = [
-                pos for pos in self.knowledge_base.keys()
-                if not self.knowledge_base[pos].facts.get('visited', False)
-                and 0.4 <= self.calculate_risk(pos) < 0.7
-            ]
-            
-            if risky_targets and self.board.agent.arrows > 0:
-                # Try to shoot most probable Wumpus first
-                risky_targets.sort(key=lambda p: (
-                    -self.calculate_wumpus_probability(p),
-                    self.calculate_risk(p)
-                ))
-                best_shot = risky_targets[0]
-                if (self.calculate_wumpus_probability(best_shot) > 0.5 
-                and self.is_facing(best_shot)):
-                    return 'shoot'
-                
-                # Attempt path to least risky cell
-                path = self.a_star_search(agent_pos, best_shot)
-        
-        # 5. Execute first move in path
-        if path and len(path) > 1:
-            next_pos = path[1]
-            direction = self.get_direction_to_position(agent_pos, next_pos)
-            if direction == self.board.agent.direction:
-                return 'forward'
-            return self.get_turn_to_direction(self.board.agent.direction, direction)
-        
+        safe_unvisited = [pos for pos in unvisited if self.is_cell_completely_safe(pos)]
+        risky_unvisited = [pos for pos in unvisited if not self.is_cell_completely_safe(pos)]
+
+        # 3. Try A* to safe targets first
+        if safe_unvisited:
+            safe_unvisited.sort(key=lambda pos: (
+                self.manhattan_distance(agent_pos, pos),
+                -len([p for p in self.board.get_adjacent_positions(*pos) 
+                    if p not in self.board.visited_cells])
+            ))
+            for target in safe_unvisited:
+                path = self.a_star_search(agent_pos, target)
+                if path:
+                    return self.get_move_from_path(agent_pos, path)
+
+        # 4. Backtrack if needed
+        if not safe_unvisited and not self.all_unvisited_are_risky():
+            backtrack_target = self.find_backtrack_target()
+            if backtrack_target:
+                path = self.a_star_search(agent_pos, backtrack_target)
+                if path:
+                    return self.get_move_from_path(agent_pos, path)
+
+        # 5. Only consider risky moves if ALL unvisited are risky
+        if risky_unvisited and self.all_unvisited_are_risky():
+            risky_unvisited.sort(key=lambda pos: (
+                self.calculate_risk(pos),
+                self.manhattan_distance(agent_pos, pos)
+            ))
+            for target in risky_unvisited:
+                path = self.risky_a_star_search(agent_pos, target)
+                if path:
+                    next_pos = path[1]
+                    if (self.is_facing(next_pos) and
+                        self.calculate_wumpus_probability(next_pos) > 0.5 and
+                        self.board.agent.arrows > 0):
+                        return 'shoot'
+                    return self.get_move_from_path(agent_pos, path)
+
         return None
 
     def a_star_search(self, start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
-        """A* pathfinding to find safest route"""
+        """Safe A* that only uses known-safe cells"""
         open_set = {start}
         came_from = {}
         g_score = {start: 0}
@@ -489,7 +503,6 @@ class LogicalInference:
         
         while open_set:
             current = min(open_set, key=lambda pos: f_score[pos])
-            
             if current == goal:
                 return self.reconstruct_path(came_from, current)
             
@@ -508,7 +521,40 @@ class LogicalInference:
                     if neighbor not in open_set:
                         open_set.add(neighbor)
         
-        return []  # No path found
+        return []
+
+    def risky_a_star_search(self, start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Risk-aware A* with danger penalties"""
+        open_set = {start}
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: self.manhattan_distance(start, goal)}
+        
+        while open_set:
+            current = min(open_set, key=lambda pos: f_score[pos])
+            if current == goal:
+                return self.reconstruct_path(came_from, current)
+            
+            open_set.remove(current)
+            
+            for neighbor in self.board.get_adjacent_positions(*current):
+                if neighbor in self.dangerous_cells:
+                    continue
+                    
+                # Higher cost for riskier cells
+                risk = self.calculate_risk(neighbor)
+                cost = 1 + (10 * risk)
+                
+                tentative_g = g_score[current] + cost
+                
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + self.manhattan_distance(neighbor, goal)
+                    if neighbor not in open_set:
+                        open_set.add(neighbor)
+        
+        return []
 
     def reconstruct_path(self, came_from: dict, current: Tuple[int, int]) -> List[Tuple[int, int]]:
         """Reconstruct path from A* search results"""
@@ -518,6 +564,40 @@ class LogicalInference:
             path.append(current)
         path.reverse()
         return path
+
+    def all_unvisited_are_risky(self) -> bool:
+        """Check if ALL unvisited cells are risky"""
+        return all(
+            not self.is_cell_completely_safe(pos)
+            for pos, knowledge in self.knowledge_base.items()
+            if not knowledge.facts.get('visited', False)
+        )
+
+    def find_backtrack_target(self) -> Optional[Tuple[int, int]]:
+        """Find best position to backtrack to"""
+        candidates = []
+        for visited_pos in self.board.visited_cells:
+            # Prefer cells adjacent to unexplored areas
+            if any(adj not in self.board.visited_cells 
+                for adj in self.board.get_adjacent_positions(*visited_pos)):
+                candidates.append(visited_pos)
+        
+        if candidates:
+            current_pos = (self.board.agent.x, self.board.agent.y)
+            candidates.sort(key=lambda pos: self.manhattan_distance(current_pos, pos))
+            return candidates[0]
+        return None
+
+    def get_move_from_path(self, current_pos: Tuple[int, int], path: List[Tuple[int, int]]) -> str:
+        """Convert path into movement command"""
+        if len(path) < 2:
+            return None
+            
+        next_pos = path[1]
+        direction = self.get_direction_to_position(current_pos, next_pos)
+        if direction == self.board.agent.direction:
+            return 'forward'
+        return self.get_turn_to_direction(self.board.agent.direction, direction)
 
     def is_facing(self, pos: Tuple[int, int]) -> bool:
         """Check if agent is facing the position (using existing direction logic)"""
