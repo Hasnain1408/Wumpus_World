@@ -416,61 +416,108 @@ class LogicalInference:
         return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
     def get_safest_move(self) -> Optional[str]:
-        """Get the safest move using existing risk calculation functions"""
+        """Get safest move using A* pathfinding to target optimal safe cells"""
         agent_pos = (self.board.agent.x, self.board.agent.y)
         
-        # 1. Priority checks (unchanged)
+        # 1. Priority checks (gold/climb)
         if self.board.get_percepts().get('glitter', False):
             return 'grab'
-        if (self.board.agent.has_gold and 
-            agent_pos == (0, self.board.size - 1)):
+        if self.board.agent.has_gold and agent_pos == (0, self.board.size - 1):
             return 'climb'
 
-
-        # 2. Risk-aware movement analysis
-        movement_options = []
+        # 2. Find all reachable safe unvisited cells using A*
+        safe_targets = [
+            pos for pos in self.knowledge_base.keys()
+            if not self.knowledge_base[pos].facts.get('visited', False)
+            and self.is_cell_completely_safe(pos)
+        ]
         
-        for adj_pos in self.board.get_adjacent_positions(*agent_pos):
-            print("adj position", adj_pos)
-            if adj_pos in self.board.visited_cells:
-
-                pass
+        # 3. Pathfinding to best target
+        if safe_targets:
+            if self.board.agent.has_gold:
+                # Find path to exit (0,9) through safe cells
+                path = self.a_star_search(agent_pos, (0, self.board.size-1))
+            else:
+                # Find path to closest safe unvisited cell
+                safe_targets.sort(key=lambda p: (
+                    self.calculate_risk(p),
+                    self.manhattan_distance(agent_pos, p)
+                ))
+                for target in safe_targets:
+                    path = self.a_star_search(agent_pos, target)
+                    if path:
+                        break
+        
+        # 4. If no safe paths, consider risky moves as last resort
+        if not safe_targets or not path:
+            risky_targets = [
+                pos for pos in self.knowledge_base.keys()
+                if not self.knowledge_base[pos].facts.get('visited', False)
+                and 0.4 <= self.calculate_risk(pos) < 0.7
+            ]
+            
+            if risky_targets and self.board.agent.arrows > 0:
+                # Try to shoot most probable Wumpus first
+                risky_targets.sort(key=lambda p: (
+                    -self.calculate_wumpus_probability(p),
+                    self.calculate_risk(p)
+                ))
+                best_shot = risky_targets[0]
+                if (self.calculate_wumpus_probability(best_shot) > 0.5 
+                and self.is_facing(best_shot)):
+                    return 'shoot'
                 
-            # Use existing risk calculation functions
-            risk = self.calculate_risk(adj_pos)
-            movement_options.append((adj_pos, risk))
-
-        # 3. Decision logic with risk thresholds
-        if not movement_options:
-            return None
-
-        # Categorize by risk level
-        safe_moves = [pos for pos, risk in movement_options if risk < 0.4]
-        print("safe moves",safe_moves)
-        risky_moves = [pos for pos, risk in movement_options if 0.4 <= risk < 0.7]
-        print("risky moves", risky_moves)
+                # Attempt path to least risky cell
+                path = self.a_star_search(agent_pos, best_shot)
         
-        # 4. Action selection
-        if self.board.agent.has_gold and safe_moves:
-            target_pos = min(safe_moves, key=lambda pos: self.manhattan_distance([0,9],pos))
-        elif safe_moves:
-            target_pos = min(safe_moves, key=lambda pos: self.calculate_risk(pos))
-        elif risky_moves and self.board.agent.arrows > 0:
-            # For risky moves, consider shooting first if facing a high-risk cell
-            most_dangerous = max(risky_moves, key=lambda pos: self.calculate_wumpus_probability(pos))
-            if (self.calculate_wumpus_probability(most_dangerous) > 0.5 and 
-                self.is_facing(most_dangerous)):
-                return 'shoot'
-            target_pos = min(risky_moves, key=lambda pos: self.calculate_risk(pos))
-        else:
-            return None
-        print("target_pos",target_pos)
+        # 5. Execute first move in path
+        if path and len(path) > 1:
+            next_pos = path[1]
+            direction = self.get_direction_to_position(agent_pos, next_pos)
+            if direction == self.board.agent.direction:
+                return 'forward'
+            return self.get_turn_to_direction(self.board.agent.direction, direction)
+        
+        return None
 
-        # 5. Generate movement command
-        required_dir = self.get_direction_to_position(agent_pos, target_pos)
-        if required_dir == self.board.agent.direction:
-            return 'forward'
-        return self.get_turn_to_direction(self.board.agent.direction, required_dir)
+    def a_star_search(self, start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """A* pathfinding to find safest route"""
+        open_set = {start}
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: self.manhattan_distance(start, goal)}
+        
+        while open_set:
+            current = min(open_set, key=lambda pos: f_score[pos])
+            
+            if current == goal:
+                return self.reconstruct_path(came_from, current)
+            
+            open_set.remove(current)
+            
+            for neighbor in self.board.get_adjacent_positions(*current):
+                if not self.is_cell_completely_safe(neighbor):
+                    continue
+                    
+                tentative_g = g_score[current] + 1
+                
+                if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + self.manhattan_distance(neighbor, goal)
+                    if neighbor not in open_set:
+                        open_set.add(neighbor)
+        
+        return []  # No path found
+
+    def reconstruct_path(self, came_from: dict, current: Tuple[int, int]) -> List[Tuple[int, int]]:
+        """Reconstruct path from A* search results"""
+        path = [current]
+        while current in came_from:
+            current = came_from[current]
+            path.append(current)
+        path.reverse()
+        return path
 
     def is_facing(self, pos: Tuple[int, int]) -> bool:
         """Check if agent is facing the position (using existing direction logic)"""
@@ -545,28 +592,32 @@ class LogicalInference:
     
     def calculate_pit_probability(self, position: Tuple[int, int]) -> float:
         """Calculate probability that a position contains a pit"""
+        # 1. Check definitive knowledge first
         if position in self.pit_cells:
             return 1.0
         if position in self.safe_from_pits:
             return 0.0
         
-        # Count constraints that involve this position
-        relevant_constraints = 0
-        total_constraints = 0
+        # 2. Check for adjacent cells without breeze (NEW CRITICAL CHECK)
+        for adj_pos in self.board.get_adjacent_positions(*position):
+            adj_cell = self.board.get_cell(*adj_pos)
+            if adj_cell.visited and not adj_cell.breeze:
+                self.safe_from_pits.add(position)  # Mark as definitely safe
+                return 0.0
         
-        for _, adjacent_cells in self.breeze_constraints:
-            total_constraints += 1
-            if position in adjacent_cells:
-                relevant_constraints += 1
+        # 3. Original constraint-based probability calculation
+        relevant_constraints = sum(1 for _, cells in self.breeze_constraints 
+                                if position in cells)
+        total_constraints = len(self.breeze_constraints)
         
         if total_constraints == 0:
-            return 0.1  # Base probability
+            return 0.1  # Base probability for unexplored cells
         
-        # Simple probability estimate
-        return min(0.8, relevant_constraints / len(self.breeze_constraints) * 0.5)
+        return min(0.8, relevant_constraints / total_constraints * 0.5)
     
     def calculate_wumpus_probability(self, position: Tuple[int, int]) -> float:
-        """Calculate probability that a position contains the wumpus"""
+        """Calculate probability that a position contains the wumpus with negative evidence checks"""
+        # 1. Check definitive knowledge first
         if not self.board.wumpus_alive:
             return 0.0
         if position in self.wumpus_cells:
@@ -574,18 +625,37 @@ class LogicalInference:
         if position in self.safe_from_wumpus:
             return 0.0
         
-        # Count constraints that involve this position
-        relevant_constraints = 0
+        # 2. Check for adjacent cells without stench (NEW CRITICAL CHECK)
+        for adj_pos in self.board.get_adjacent_positions(*position):
+            adj_cell = self.board.get_cell(*adj_pos)
+            if adj_cell.visited and not adj_cell.stench:
+                self.safe_from_wumpus.add(position)  # Mark as definitely safe
+                return 0.0
         
-        for _, adjacent_cells in self.stench_constraints:
-            if position in adjacent_cells:
-                relevant_constraints += 1
+        # 3. Check if all adjacent stenches are explained by other possible wumpus locations
+        if position in self.possible_wumpus:
+            can_explain_all = True
+            for stench_pos, _ in self.stench_constraints:
+                if position in self.board.get_adjacent_positions(*stench_pos):
+                    other_explanations = [p for p in self.possible_wumpus 
+                                        if p != position and 
+                                        p in self.board.get_adjacent_positions(*stench_pos)]
+                    if not other_explanations:
+                        can_explain_all = False
+                        break
+            
+            if not can_explain_all:
+                return 0.0  # This cell can't explain all required stenches
+        
+        # 4. Original constraint-based probability calculation
+        relevant_constraints = sum(1 for _, cells in self.stench_constraints 
+                                if position in cells)
+        total_possible = len(self.possible_wumpus)
         
         if relevant_constraints == 0:
             return 0.1  # Base probability
         
-        # Estimate probability based on number of constraints
-        return min(0.8, relevant_constraints / len(self.possible_wumpus) if self.possible_wumpus else 0.5)
+        return min(0.8, relevant_constraints / (total_possible + 1) * 0.7)
     
     def print_knowledge_state(self):
         """Print current knowledge state for debugging"""
@@ -609,7 +679,7 @@ class LogicalInference:
     def print_knowledge_base(self):
         """Prints the raw knowledge_base dictionary with detailed cell knowledge"""
         print("\n=== KNOWLEDGE BASE DUMP ===")
-        print(f"{'Position':<8} | {'Facts':<45} | {'Confidence'}")
+        print(f"{'Position':<8} | {'Facts':<85} | {'Confidence'}")
         print("-" * 70)
         
         for position, knowledge in self.knowledge_base.items():
