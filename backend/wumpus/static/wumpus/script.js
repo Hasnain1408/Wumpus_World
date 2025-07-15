@@ -1024,14 +1024,20 @@ class WumpusWorldUI {
         // Add to top of list for latest moves first
         historyList.insertBefore(moveEntry, historyList.firstChild);
 
-        // Keep only last 8 moves to prevent overflow
+        // Keep only last 10 moves to prevent overflow
         const moveEntries = historyList.querySelectorAll('.move-entry');
-        if (moveEntries.length > 8) {
+        if (moveEntries.length > 10) {
             moveEntries[moveEntries.length - 1].remove();
         }
 
         // Scroll to top to show latest move
         historyList.scrollTop = 0;
+        
+        // Ensure the parent container also scrolls to top if needed
+        const parentPanel = historyList.closest('.recent-moves-panel');
+        if (parentPanel) {
+            parentPanel.scrollTop = 0;
+        }
     }
 
     isMovementAction(action) {

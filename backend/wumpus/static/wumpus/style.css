@@ -32,10 +32,10 @@ body {
 /* Main Game Area Layout */
 .main-game-area {
     display: grid;
-    grid-template-columns: 240px 1fr 320px;
+    grid-template-columns: 220px 1fr 260px;
     grid-template-rows: minmax(500px, auto);
-    gap: 25px;
-    align-items: start;
+    gap: 30px;
+    align-items: center;
     justify-content: center;
     margin: 30px 0 50px 0;
     position: relative;
@@ -50,33 +50,33 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 25px 20px;
+    padding: 20px 15px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     width: 100%;
     height: auto;
-    min-height: 400px;
-    max-height: 500px;
+    min-height: 450px;
+    max-height: 520px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-self: start;
+    align-self: center;
 }
 
 .environment-sidebar h3 {
     color: #ffd700;
-    margin-bottom: 20px;
-    font-size: 1.4em;
+    margin-bottom: 18px;
+    font-size: 1.3em;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     text-align: center;
     border-bottom: 2px solid rgba(255, 215, 0, 0.3);
-    padding-bottom: 10px;
+    padding-bottom: 8px;
 }
 
 .env-buttons-vertical {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 18px;
+    gap: 15px;
     align-items: center;
     justify-items: center;
 }
@@ -85,19 +85,19 @@ body {
     background: linear-gradient(145deg, #805ad5, #6b46c1);
     color: #fff;
     border: none;
-    padding: 15px 20px;
-    border-radius: 15px;
-    font-size: 0.95em;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.9em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.2);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     width: 100%;
-    max-width: 250px;
+    max-width: 220px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(128, 90, 213, 0.3);
-    min-height: 50px;
+    min-height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -120,7 +120,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
     width: 100%;
-    max-width: 250px;
+    max-width: 220px;
 }
 
 .env-buttons-vertical .file-upload-container .env-btn:hover {
@@ -642,44 +642,36 @@ body {
 .legend-symbol.stench { color: #fc8181; }
 .legend-symbol.glitter { color: #ffd700; }
 
-/* Move Information Sidebar */
-.move-info-sidebar {
-    background: rgba(255, 255, 255, 0.08);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    height: auto;
-    min-height: 500px;
-    max-height: 650px;
+/* Right Info Container */
+.right-info-container {
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-self: start;
-    overflow: visible;
+    gap: 15px;
+    width: 100%;
+    align-self: center;
+    height: auto;
+    max-height: 460px;
 }
 
 /* Move Information Panel */
 .move-info-panel {
     background: rgba(30, 41, 59, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 15px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
     max-height: none;
-    min-height: 300px;
+    min-height: 280px;
     overflow: visible;
-    margin-bottom: 15px;
 }
 
 .move-info-panel h4 {
     color: #f1c40f;
     margin: 0 0 15px 0;
-    font-size: 16px;
+    font-size: 14px;
     text-align: center;
     border-bottom: 2px solid rgba(241, 196, 15, 0.3);
     padding-bottom: 8px;
@@ -689,7 +681,7 @@ body {
 .move-details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     max-height: none;
     overflow: visible;
     padding-right: 0;
@@ -699,13 +691,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
+    padding: 6px 8px;
     background: rgba(51, 65, 85, 0.5);
     border-radius: 6px;
     border-left: 3px solid transparent;
     transition: all 0.3s ease;
-    min-height: 35px;
-    margin-bottom: 4px;
+    min-height: 30px;
+    margin-bottom: 3px;
 }
 
 .info-item:hover {
@@ -715,17 +707,17 @@ body {
 }
 
 .info-label {
-    font-size: 12px;
+    font-size: 11px;
     color: #94a3b8;
     font-weight: 600;
 }
 
 .info-value {
-    font-size: 12px;
+    font-size: 11px;
     color: #e2e8f0;
     font-weight: 700;
     text-align: right;
-    max-width: 140px;
+    max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -735,28 +727,63 @@ body {
 /* Special styling for percepts and move results that might have longer text */
 .info-item .info-value.percepts,
 .info-item .info-value.move-result {
-    max-width: 160px;
+    max-width: 130px;
     white-space: normal;
     word-wrap: break-word;
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.3;
     text-align: right;
 }
 
 .info-item.percepts-item,
 .info-item.move-result-item {
-    min-height: 40px;
+    min-height: 35px;
     align-items: flex-start;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 .info-item.percepts-item .info-label,
 .info-item.move-result-item .info-label {
-    padding-top: 3px;
+    padding-top: 2px;
 }
 
-/* Move History Panel */
+/* Recent Moves Panel */
+.recent-moves-panel {
+    background: rgba(30, 41, 59, 0.7);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 15px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    height: 160px;
+    max-height: 160px;
+    min-height: 160px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth;
+}
+
+.recent-moves-panel h4 {
+    color: #f1c40f;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    text-align: center;
+    border-bottom: 2px solid rgba(241, 196, 15, 0.3);
+    padding-bottom: 6px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+    background: rgba(30, 41, 59, 0.95);
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+/* Move History Panel - Updated */
 .move-history-panel {
     margin-top: 0;
     background: rgba(30, 41, 59, 0.7);
@@ -770,6 +797,7 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
     flex-grow: 1;
+    scroll-behavior: smooth;
 }
 
 .move-history-panel h4 {
@@ -789,19 +817,25 @@ body {
 .move-history-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 3px;
     padding-right: 4px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(160px - 45px);
+    scroll-behavior: smooth;
 }
 
 .move-entry {
     background: rgba(51, 65, 85, 0.6);
-    border-radius: 8px;
-    padding: 8px 10px;
-    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+    padding: 5px 7px;
+    border-left: 3px solid #3b82f6;
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-shrink: 0;
-    min-height: 60px;
+    min-height: 42px;
+    margin-bottom: 2px;
 }
 
 .move-entry:hover {
@@ -823,16 +857,16 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
 }
 
 .move-action {
-    font-size: 12px;
+    font-size: 11px;
     color: #e2e8f0;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 }
 
 .move-type {
@@ -853,50 +887,58 @@ body {
 }
 
 .move-position {
-    font-size: 10px;
+    font-size: 9px;
     color: #34d399;
-    margin: 2px 0;
+    margin: 1px 0;
     font-weight: 600;
 }
 
 .move-result {
-    font-size: 10px;
+    font-size: 9px;
     color: #94a3b8;
-    line-height: 1.3;
-    margin-top: 3px;
+    line-height: 1.2;
+    margin-top: 2px;
 }
 
 .no-moves {
     text-align: center;
     color: #64748b;
     font-style: italic;
-    font-size: 12px;
-    padding: 20px;
+    font-size: 11px;
+    padding: 15px;
     background: rgba(51, 65, 85, 0.3);
-    border-radius: 8px;
+    border-radius: 6px;
     border: 2px dashed rgba(100, 116, 139, 0.3);
 }
 
 /* Scrollbar styling */
 .move-details::-webkit-scrollbar,
-.move-history-panel::-webkit-scrollbar {
+.move-history-panel::-webkit-scrollbar,
+.recent-moves-panel::-webkit-scrollbar,
+.move-history-list::-webkit-scrollbar {
     width: 4px;
 }
 
 .move-details::-webkit-scrollbar-track,
-.move-history-panel::-webkit-scrollbar-track {
+.move-history-panel::-webkit-scrollbar-track,
+.recent-moves-panel::-webkit-scrollbar-track,
+.move-history-list::-webkit-scrollbar-track {
     background: rgba(51, 65, 85, 0.3);
     border-radius: 2px;
 }
 
 .move-details::-webkit-scrollbar-thumb,
-.move-history-panel::-webkit-scrollbar-thumb {
+.move-history-panel::-webkit-scrollbar-thumb,
+.recent-moves-panel::-webkit-scrollbar-thumb,
+.move-history-list::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 0.4);
     border-radius: 2px;
 }
 
 .move-details::-webkit-scrollbar-thumb:hover,
-.move-history-panel::-webkit-scrollbar-thumb:hover {
+.move-history-panel::-webkit-scrollbar-thumb:hover,
+.recent-moves-panel::-webkit-scrollbar-thumb:hover,
+.move-history-list::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 0.6);
 }
 
@@ -994,7 +1036,7 @@ body {
     }
     
     .environment-sidebar,
-    .move-info-sidebar {
+    .right-info-container {
         width: 100%;
         max-width: 100%;
         align-self: center;
@@ -1002,6 +1044,10 @@ body {
         height: auto;
         min-height: 300px;
         max-height: none;
+    }
+    
+    .right-info-container {
+        gap: 15px;
     }
     
     .env-buttons-vertical {
@@ -1018,6 +1064,10 @@ body {
     }
     
     .move-info-sidebar {
+        grid-row: 3;
+    }
+    
+    .right-info-container {
         grid-row: 3;
     }
     
