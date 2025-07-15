@@ -349,6 +349,9 @@ class WumpusWorldUI {
         const isCurrent = (agentX === x && agentY === y);
         const isVisited = this.isCellVisible(x, y);
 
+        // Debug logging
+        console.log(`Cell (${x},${y}): isCurrent=${isCurrent}, isVisited=${isVisited}, visited_cells=`, this.gameState.visited_cells);
+
         // Show agent
         if (isCurrent) {
             mainContent.textContent = '🤖';
@@ -392,19 +395,42 @@ class WumpusWorldUI {
             }
         }
 
-        // Only add visited/safe classes for truly visited cells
-        if (isVisited) {
+        // Apply visited styling for visited cells (except current)
+        if (isVisited && !isCurrent) {
             cell.classList.add('visited');
+            console.log(`Added 'visited' class to cell (${x},${y})`);
         }
-        if (this.isCellSafe(x, y) && isVisited) {
+        
+        // Apply safe styling for safe visited cells (except current)
+        if (this.isCellSafe(x, y) && isVisited && !isCurrent) {
             cell.classList.add('safe');
+            console.log(`Added 'safe' class to cell (${x},${y})`);
         }
+        
         cell.title = `(${x}, ${y})`;
     }
 
     isCellVisible(x, y) {
-        if (!this.gameState) return false;
-        return this.gameState.visited_cells.includes(`${x},${y}`);
+        if (!this.gameState || !this.gameState.visited_cells) {
+            return false;
+        }
+
+        // Normalize visited_cells to an array of [x, y] arrays
+        let visitedCells = this.gameState.visited_cells;
+        
+        // If visited_cells is a Set of tuples or array of tuples, convert to array of [x, y]
+        if (visitedCells instanceof Set || (Array.isArray(visitedCells) && visitedCells.length > 0 && Array.isArray(visitedCells[0]))) {
+            visitedCells = Array.from(visitedCells);
+        } else if (Array.isArray(visitedCells) && visitedCells.length > 0 && typeof visitedCells[0] === 'string') {
+            // Handle string format "x,y"
+            visitedCells = visitedCells.map(cell => cell.split(',').map(Number));
+        } else if (Array.isArray(visitedCells) && visitedCells.length > 0 && typeof visitedCells[0] === 'object') {
+            // Handle object format {x, y}
+            visitedCells = visitedCells.map(cell => [cell.x, cell.y]);
+        }
+
+        // Check if [x, y] is in visitedCells
+        return visitedCells.some(cell => cell[0] === x && cell[1] === y);
     }
 
     isCellSafe(x, y) {
