@@ -1,5 +1,3 @@
-// Wumpus World Frontend Interface - Fixed Agent Symbol Movement
-
 class WumpusWorldUI {
     constructor() {
         this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -10,6 +8,7 @@ class WumpusWorldUI {
         this.aiInterval = null;
         this.moveDelay = 1500; // Delay between AI moves in milliseconds
         this.csrfToken = null;
+        this.showEnvironment = false;
         
         this.initializeUI();
         this.initializeCSRF();
@@ -241,7 +240,8 @@ class WumpusWorldUI {
         }
 
         try {
-            const response = await fetch('/api/game-state/', {
+            // Try POST request first
+            let response = await fetch('/api/game-state/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -252,6 +252,15 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
+            
+            // If POST fails due to CSRF issues, try GET request as fallback
+            if (!response.ok && response.status === 403) {
+                console.log('POST request failed, trying GET request...');
+                response = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+            }
             
             const data = await response.json();
             
@@ -264,7 +273,29 @@ class WumpusWorldUI {
             }
         } catch (error) {
             console.error('Error loading game state:', error);
-            this.showMessage('Error loading game state', 'error');
+            
+            // Final fallback: try GET request without CSRF
+            try {
+                console.log('Trying GET request as final fallback...');
+                const fallbackResponse = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                const fallbackData = await fallbackResponse.json();
+                
+                if (fallbackData.success) {
+                    this.gameState = fallbackData.game_state;
+                    this.renderBoard();
+                    this.updateGameInfo();
+                    this.showMessage('Game state loaded successfully', 'success');
+                } else {
+                    this.showMessage('Failed to load game state', 'error');
+                }
+            } catch (fallbackError) {
+                console.error('Fallback GET request also failed:', fallbackError);
+                this.showMessage('Error loading game state', 'error');
+            }
         }
     }
 
@@ -309,38 +340,47 @@ class WumpusWorldUI {
         if (!this.gameState) return;
 
         const cellData = this.gameState.board[y][x];
-        
-        // Clear previous content
         mainContent.textContent = '';
         indicators.innerHTML = '';
-        cell.className = 'cell'; // Reset classes
-        
-        // FIXED: Check if agent is at this position using the agent's coordinates
+        cell.className = 'cell';
+
         const agentX = this.gameState.agent?.x || 0;
         const agentY = this.gameState.agent?.y || 0;
-        
-        if (agentX === x && agentY === y) {
+        const isCurrent = (agentX === x && agentY === y);
+        const isVisited = this.isCellVisible(x, y);
+
+        // Show agent
+        if (isCurrent) {
             mainContent.textContent = '🤖';
             cell.classList.add('current');
-            console.log(`Agent rendered at (${x}, ${y})`); // Debug log
-        } else if (cellData.wumpus && this.gameState.wumpus_alive) {
-            mainContent.textContent = this.isCellVisible(x, y) ? '👹' : '';
-            if (this.isCellVisible(x, y)) {
+            const direction = this.gameState.agent?.direction || 'right';
+            const directionSymbols = {
+                'right': '→',
+                'left': '←',
+                'up': '↑',
+                'down': '↓'
+            };
+            indicators.innerHTML += `<span title="Facing ${direction}">${directionSymbols[direction]}</span>`;
+            if (cellData.gold) {
+                indicators.innerHTML += '<span title="Glitter - Gold here">✨</span>';
+            }
+        } else if (this.showEnvironment || isVisited) {
+            // Show environment elements if revealed or visited
+            if (cellData.wumpus && this.gameState.wumpus_alive) {
+                mainContent.textContent = '👹';
+                cell.classList.add('danger');
+            } else if (cellData.wumpus && !this.gameState.wumpus_alive) {
+                mainContent.textContent = '💀';
+            } else if (cellData.gold) {
+                mainContent.textContent = '💰';
+            } else if (cellData.pit) {
+                mainContent.textContent = '🕳️';
                 cell.classList.add('danger');
             }
-        } else if (cellData.wumpus && !this.gameState.wumpus_alive) {
-            mainContent.textContent = this.isCellVisible(x, y) ? '💀' : '';
-        } else if (cellData.gold && this.isCellVisible(x, y)) {
-            mainContent.textContent = '💰';
-        } else if (cellData.pit && this.isCellVisible(x, y)) {
-            mainContent.textContent = '🕳️';
-            cell.classList.add('danger');
         }
 
-        // Add indicators (breeze, stench, glitter)
-        if (this.isCellVisible(x, y)) {
-            cell.classList.add('visited');
-            
+        // Show percepts if revealed or visited (but not on agent's current cell)
+        if ((this.showEnvironment || isVisited) && !isCurrent) {
             if (cellData.breeze) {
                 indicators.innerHTML += '<span title="Breeze - Pit nearby">💨</span>';
             }
@@ -352,23 +392,18 @@ class WumpusWorldUI {
             }
         }
 
-        // Add cell state classes
-        if (cellData.visited) {
+        // Only add visited/safe classes for truly visited cells
+        if (isVisited) {
             cell.classList.add('visited');
         }
-        
-        if (this.isCellSafe(x, y) && cellData.visited) {
+        if (this.isCellSafe(x, y) && isVisited) {
             cell.classList.add('safe');
         }
-        
-        // Add coordinates for debugging
         cell.title = `(${x}, ${y})`;
     }
 
     isCellVisible(x, y) {
         if (!this.gameState) return false;
-        
-        // Cell is visible if agent has visited it
         return this.gameState.visited_cells.includes(`${x},${y}`);
     }
 
@@ -618,6 +653,67 @@ class WumpusWorldUI {
         }
     }
 
+    async loadEnvironmentFromFile(filePath = null) {
+        try {
+            const response = await fetch('/api/load-environment-from-file/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    file_path: filePath
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from file successfully', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading environment from file:', error);
+            this.showMessage('Error loading environment from file', 'error');
+        }
+    }
+
+    async loadDefaultEnvironment() {
+        try {
+            const response = await fetch('/api/load-default-environment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from wumpus.txt', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading default environment:', error);
+            this.showMessage('Error loading wumpus.txt', 'error');
+        }
+    }
+
     async getAIHint() {
         try {
             const response = await fetch('/api/ai-hint/', {
@@ -701,6 +797,19 @@ class WumpusWorldUI {
                 break;
         }
     }
+
+    toggleEnvironment() {
+        this.showEnvironment = !this.showEnvironment;
+        const toggleBtn = document.getElementById('toggle-environment');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = this.showEnvironment ? '🙈 Hide Environment' : '👁️ Show Environment';
+        }
+        this.renderBoard();
+        this.showMessage(
+            this.showEnvironment ? 'Environment elements are now visible' : 'Environment elements are hidden',
+            'info'
+        );
+    }
 }
 
 // Global UI instance
@@ -782,6 +891,24 @@ function autoPlay() {
 function pauseAI() {
     if (gameUI) {
         gameUI.pauseAI();
+    }
+}
+
+function toggleEnvironment() {
+    if (gameUI) {
+        gameUI.toggleEnvironment();
+    }
+}
+
+function loadEnvironmentFromFile(filePath = null) {
+    if (gameUI) {
+        gameUI.loadDefaultEnvironment();
+    }
+}
+
+function loadDefaultEnvironment() {
+    if (gameUI) {
+        gameUI.loadDefaultEnvironment();
     }
 }
 
