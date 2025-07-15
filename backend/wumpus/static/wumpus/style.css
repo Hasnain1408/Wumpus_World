@@ -870,6 +870,54 @@ body {
     background: rgba(148, 163, 184, 0.6);
 }
 
+/* Mode Selection Styles */
+.mode-selection {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.mode-selection h3 {
+    color: #ffd700;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mode-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.mode-btn {
+    background: linear-gradient(145deg, #4a5568, #2d3748);
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    min-width: 140px;
+}
+
+.mode-btn:hover {
+    background: linear-gradient(145deg, #5a6578, #3d4758);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.mode-btn.active {
+    background: linear-gradient(145deg, #3182ce, #2b6cb0);
+    border-color: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
 /* Responsive Design */
 @media (min-width: 1200px) {
     .main-game-area {
