@@ -32,15 +32,15 @@ body {
 /* Main Game Area Layout */
 .main-game-area {
     display: grid;
-    grid-template-columns: 300px 1fr 300px;
-    grid-template-rows: minmax(550px, 1fr);
-    gap: 30px;
-    align-items: center;
+    grid-template-columns: 240px 1fr 320px;
+    grid-template-rows: minmax(500px, auto);
+    gap: 25px;
+    align-items: start;
     justify-content: center;
-    margin: 20px 0 40px 0;
+    margin: 30px 0 50px 0;
     position: relative;
-    min-height: 550px;
-    max-height: 700px;
+    min-height: 500px;
+    max-height: none;
     padding: 0 20px;
 }
 
@@ -50,17 +50,17 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 30px 25px;
+    padding: 25px 20px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     width: 100%;
-    height: 480px;
-    min-height: 480px;
-    max-height: 480px;
+    height: auto;
+    min-height: 400px;
+    max-height: 500px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-self: center;
+    align-self: start;
 }
 
 .environment-sidebar h3 {
@@ -236,9 +236,10 @@ body {
     justify-content: center;
     align-items: center;
     position: relative;
-    min-height: 480px;
-    max-height: 480px;
+    min-height: 450px;
+    max-height: 550px;
     grid-column: 2;
+    align-self: center;
 }
 
 .board-container::before {
@@ -404,6 +405,7 @@ body {
     justify-content: center;
     gap: 30px;
     margin-bottom: 25px;
+    margin-top: 40px;
 }
 
 .control-group {
@@ -646,30 +648,32 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 20px;
-    padding: 20px;
+    padding: 18px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     width: 100%;
-    height: 480px;
-    min-height: 480px;
-    max-height: 480px;
+    height: auto;
+    min-height: 500px;
+    max-height: 650px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    align-self: center;
-    overflow: hidden;
+    align-self: start;
+    overflow: visible;
 }
 
 /* Move Information Panel */
 .move-info-panel {
     background: rgba(30, 41, 59, 0.7);
     border-radius: 15px;
-    padding: 18px;
+    padding: 15px;
     border: 1px solid rgba(148, 163, 184, 0.2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
-    max-height: 220px;
-    min-height: 200px;
+    max-height: none;
+    min-height: 300px;
+    overflow: visible;
+    margin-bottom: 15px;
 }
 
 .move-info-panel h4 {
@@ -686,10 +690,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 160px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 4px;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
 }
 
 .info-item {
@@ -698,9 +701,11 @@ body {
     align-items: center;
     padding: 8px 10px;
     background: rgba(51, 65, 85, 0.5);
-    border-radius: 8px;
+    border-radius: 6px;
     border-left: 3px solid transparent;
     transition: all 0.3s ease;
+    min-height: 35px;
+    margin-bottom: 4px;
 }
 
 .info-item:hover {
@@ -710,31 +715,56 @@ body {
 }
 
 .info-label {
-    font-size: 13px;
+    font-size: 12px;
     color: #94a3b8;
     font-weight: 600;
 }
 
 .info-value {
-    font-size: 13px;
+    font-size: 12px;
     color: #e2e8f0;
     font-weight: 700;
     text-align: right;
-    max-width: 120px;
+    max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    word-wrap: break-word;
+}
+
+/* Special styling for percepts and move results that might have longer text */
+.info-item .info-value.percepts,
+.info-item .info-value.move-result {
+    max-width: 160px;
+    white-space: normal;
+    word-wrap: break-word;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: right;
+}
+
+.info-item.percepts-item,
+.info-item.move-result-item {
+    min-height: 40px;
+    align-items: flex-start;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.info-item.percepts-item .info-label,
+.info-item.move-result-item .info-label {
+    padding-top: 3px;
 }
 
 /* Move History Panel */
 .move-history-panel {
-    margin-top: 15px;
+    margin-top: 0;
     background: rgba(30, 41, 59, 0.7);
     border-radius: 15px;
-    padding: 18px;
+    padding: 15px;
     border: 1px solid rgba(148, 163, 184, 0.2);
-    max-height: 300px;
-    min-height: 220px;
+    max-height: 200px;
+    min-height: 180px;
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
