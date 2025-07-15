@@ -684,6 +684,37 @@ class WumpusWorldUI {
         }
     }
 
+    async loadEnvironmentFromUploadedFile(fileContent) {
+        try {
+            const response = await fetch('/api/load-environment-from-uploaded-file/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    file_content: fileContent
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from uploaded file successfully', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading environment from uploaded file:', error);
+            this.showMessage('Error loading environment from uploaded file', 'error');
+        }
+    }
+
     async loadDefaultEnvironment() {
         try {
             const response = await fetch('/api/load-default-environment/', {
@@ -814,6 +845,44 @@ class WumpusWorldUI {
 
 // Global UI instance
 let gameUI;
+
+// File upload handler - defined early to ensure availability
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+    
+    // Check file type
+    if (!file.name.endsWith('.txt')) {
+        if (gameUI) {
+            gameUI.showMessage('Please select a .txt file', 'error');
+        }
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        if (gameUI) {
+            gameUI.loadEnvironmentFromUploadedFile(fileContent);
+        }
+    };
+    
+    reader.onerror = function() {
+        if (gameUI) {
+            gameUI.showMessage('Error reading file', 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    
+    // Clear the input so the same file can be selected again
+    event.target.value = '';
+}
+
+// Make sure it's globally accessible
+window.handleFileUpload = handleFileUpload;
 
 // Initialize UI when page loads
 document.addEventListener('DOMContentLoaded', function() {

@@ -17,6 +17,7 @@ urlpatterns = [
     path('api/game-state/', views.get_game_state, name='game_state'),
     path('api/load-environment/', views.load_environment, name='load_environment'),
     path('api/load-default-environment/', views.load_default_environment, name='load_default_environment'),
+    path('api/load-environment-from-uploaded-file/', views.load_environment_from_uploaded_file, name='load_environment_from_uploaded_file'),
     path('api/benchmark/', views.run_benchmark, name='benchmark'),
     path('api/compare-strategies/', views.compare_strategies, name='compare_strategies'),
     path('api/performance-stats/', views.get_performance_stats, name='performance_stats'),

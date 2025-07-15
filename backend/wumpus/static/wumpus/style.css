@@ -93,6 +93,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 15px;
+    flex-wrap: wrap;
 }
 
 .env-btn {
@@ -111,6 +112,22 @@ body {
 
 .env-btn:hover {
     background: linear-gradient(145deg, #9065e5, #7b56d1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.file-upload-container {
+    position: relative;
+    display: inline-block;
+}
+
+.file-upload-container .env-btn {
+    background: linear-gradient(145deg, #059669, #047857);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.file-upload-container .env-btn:hover {
+    background: linear-gradient(145deg, #10b981, #059669);
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
@@ -502,6 +519,16 @@ body {
         font-size: 2em;
     }
     
+    .env-buttons {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .env-btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+    
     .cell {
         width: 40px;
         height: 40px;
@@ -524,5 +551,15 @@ body {
     
     .legend-items {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .env-buttons {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .env-btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
     }
 }

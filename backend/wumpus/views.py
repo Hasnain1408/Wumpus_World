@@ -704,6 +704,58 @@ def get_random_environment(request):
         'message': f'Generated environment with {len(pits)} pits'
     })
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def load_environment_from_uploaded_file(request):
+    """
+    API endpoint to load environment from uploaded file content
+    """
+    try:
+        data = json.loads(request.body)
+        session_id = data.get('session_id', 'default')
+        file_content = data.get('file_content')
+        
+        if not file_content:
+            return JsonResponse({
+                'success': False,
+                'message': 'File content is required'
+            }, status=400)
+        
+        # Get or create game instance
+        if session_id not in game_instances:
+            game_instances[session_id] = WumpusGame()
+        
+        game = game_instances[session_id]
+        
+        # Split file content into lines
+        lines = file_content.strip().split('\n')
+        
+        # Load from text lines using the existing method
+        success = game._load_from_text_lines(lines)
+        
+        if success:
+            return JsonResponse({
+                'success': True,
+                'message': 'Environment loaded from uploaded file',
+                'game_state': game.get_game_state()
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Failed to load environment from uploaded file. Please check the file format.'
+            }, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error loading environment from uploaded file: {str(e)}'
+        }, status=500)
+
 # Error handlers
 def handler404(request, exception):
     """Custom 404 error handler"""
