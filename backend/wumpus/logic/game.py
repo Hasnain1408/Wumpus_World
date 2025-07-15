@@ -1,10 +1,7 @@
-"""
-Wumpus World Game Logic
-Main game controller and state management
-"""
-
 import json
 import random
+import os
+from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from .board import WumpusBoard
 from .move import Move, MoveResult
@@ -12,8 +9,7 @@ from .logical_inference import LogicalInference
 
 
 class WumpusGame:
-    """Main game controller for Wumpus World"""
-    
+  
     def __init__(self, board_size: int = 10):
         self.board = WumpusBoard(board_size)
         self.move_history: List[Move] = []
@@ -47,7 +43,10 @@ class WumpusGame:
         # Handle direct movement actions
         if action.startswith('move_'):
             direction = action.split('_')[1]
-            return self.move_agent(direction)
+            result = self.move_agent(direction)
+            # Print knowledge after direct movement
+            self.inference_engine.print_knowledge_state()  # <-- ADDED
+            return result
         
         # Create move object
         move = Move(action, direction, self.board.agent.x, self.board.agent.y)
@@ -93,6 +92,9 @@ class WumpusGame:
         
         # Update inference engine
         self.inference_engine.update_knowledge(move)
+        
+        # PRINT KNOWLEDGE STATE AFTER UPDATING (NEW)
+        self.inference_engine.print_knowledge_state()  # <-- ADDED
         
         # Check game status
         if self.board.is_game_won():
@@ -222,6 +224,83 @@ class WumpusGame:
             # Reset inference engine with new environment
             self.inference_engine = LogicalInference(self.board)
         return success
+    
+    def load_environment_from_text_file(self, file_path: str = None) -> bool:
+        """
+        Load environment from wumpus.txt file
+        """
+        try:
+            if file_path is None:
+                current_dir = Path(__file__).parent
+                file_path = current_dir / "wumpus1.txt"
+            
+            if not os.path.exists(file_path):
+                print(f"Error: File {file_path} not found")
+                return False
+            
+            with open(file_path, 'r') as f:
+                lines = f.readlines()
+            
+            return self._load_from_text_lines(lines)
+            
+        except Exception as e:
+            print(f"Error loading environment from file: {e}")
+            return False
+    
+    def _load_from_text_lines(self, lines: List[str]) -> bool:
+        """
+        Load environment directly from text lines
+        """
+        try:
+            # Clean lines
+            clean_lines = [line.strip() for line in lines if line.strip()]
+            
+            if len(clean_lines) != 10:
+                print(f"Error: Expected 10 lines, got {len(clean_lines)}")
+                return False
+            
+            # Clear existing board
+            for y in range(self.board.size):
+                for x in range(self.board.size):
+                    cell = self.board.board[y][x]
+                    cell.wumpus = False
+                    cell.pit = False
+                    cell.gold = False
+                    cell.breeze = False
+                    cell.stench = False
+                    cell.glitter = False
+            
+            # Load directly from text
+            for y, line in enumerate(clean_lines):
+                if len(line) != 10:
+                    print(f"Error: Line {y+1} has {len(line)} characters, expected 10")
+                    return False
+                
+                for x, char in enumerate(line):
+                    cell = self.board.board[y][x]
+                    
+                    if char == 'W':
+                        cell.wumpus = True
+                    elif char == 'G':
+                        cell.gold = True
+                        cell.glitter = True
+                    elif char == 'P':
+                        cell.pit = True
+            
+            # Generate breezes and stenches
+            self.board.generate_breezes()
+            self.board.generate_stenches()
+            
+            print("Environment loaded successfully from wumpus.txt")
+            return True
+            
+        except Exception as e:
+            print(f"Error loading from text lines: {e}")
+            return False
+    
+    def load_default_environment(self) -> bool:
+        """Load the default environment from wumpus.txt file"""
+        return self.load_environment_from_text_file()
     
     def get_ai_suggestion(self) -> Optional[str]:
         """Get AI suggestion for the next move"""
