@@ -17,7 +17,7 @@ class AutoPlayAI:
         self.game = WumpusGame(board_size)
         self.strategy = 'logical'  # 'logical', 'random', 'cautious', 'aggressive'
         self.max_moves = 1000
-        self.thinking_time = 0.5  # Seconds to "think" between moves
+        self.thinking_time = 0.1  # Seconds to "think" between moves
         self.performance_stats = {
             'games_played': 0,
             'games_won': 0,
