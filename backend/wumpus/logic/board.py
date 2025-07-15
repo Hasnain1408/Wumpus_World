@@ -39,7 +39,7 @@ class AgentState:
 class WumpusBoard:
     """Main board class for Wumpus World"""
     
-    def __init__(self, size: int = 10):
+    def __init__(self, size: int = 5):
         self.size = size
         self.board: List[List[Cell]] = []
         self.agent = AgentState()
@@ -223,7 +223,10 @@ class WumpusBoard:
     
     def turn_agent(self, direction: str):
         """Turn agent to face given direction"""
-        self.agent.direction = direction
+        if direction in ['right', 'up', 'left', 'down']:
+            self.agent.direction = direction
+        else:
+            print(f"Invalid direction: {direction}")
     
     def shoot_arrow(self, direction: str) -> bool:
         """Shoot arrow in given direction"""
