@@ -354,48 +354,6 @@ def load_environment(request):
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def load_default_environment(request):
-    """
-    API endpoint to load the default environment from wumpus.txt
-    """
-    try:
-        data = json.loads(request.body)
-        session_id = data.get('session_id', 'default')
-        
-        # Get or create game instance
-        if session_id not in game_instances:
-            game_instances[session_id] = WumpusGame()
-        
-        game = game_instances[session_id]
-        
-        # Load from wumpus.txt
-        success = game.load_default_environment()
-        
-        if success:
-            return JsonResponse({
-                'success': True,
-                'message': 'Environment loaded from wumpus.txt',
-                'game_state': game.get_game_state()
-            })
-        else:
-            return JsonResponse({
-                'success': False,
-                'message': 'Failed to load wumpus.txt'
-            }, status=400)
-            
-    except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'message': 'Invalid JSON data'
-        }, status=400)
-    except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'message': f'Error: {str(e)}'
-        }, status=500)
-
-@csrf_exempt
-@require_http_methods(["POST"])
 def run_benchmark(request):
     """
     API endpoint to run AI benchmark

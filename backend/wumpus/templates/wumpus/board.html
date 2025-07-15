@@ -31,9 +31,6 @@
                 <button class="env-btn" onclick="generateRandomEnvironment()">
                     🎲 Random Environment
                 </button>
-                <button class="env-btn" onclick="loadDefaultEnvironment()">
-                    📁 Load from File (wumpus.txt)
-                </button>
                 <div class="file-upload-container">
                     <input type="file" id="environment-file-input" accept=".txt" style="display: none;" onchange="handleFileUpload(event)">
                     <button class="env-btn" onclick="document.getElementById('environment-file-input').click()">
