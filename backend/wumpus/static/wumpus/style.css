@@ -32,16 +32,14 @@ body {
 /* Main Game Area Layout */
 .main-game-area {
     display: grid;
-    grid-template-columns: 220px 1fr 260px;
-    grid-template-rows: minmax(500px, auto);
+    grid-template-columns: 220px minmax(500px, 1fr) 240px;
     gap: 30px;
     align-items: center;
     justify-content: center;
-    margin: 30px 0 50px 0;
+    margin: 30px auto;
     position: relative;
-    min-height: 500px;
-    max-height: none;
-    padding: 0 20px;
+    padding: 20px;
+    max-width: 1500px;
 }
 
 /* Environment Sidebar */
@@ -49,18 +47,18 @@ body {
     background: rgba(255, 255, 255, 0.08);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
+    border-radius: 18px;
     padding: 20px 15px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     width: 100%;
     height: auto;
-    min-height: 450px;
-    max-height: 520px;
+    max-height: 450px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    gap: 15px;
     align-self: center;
+    justify-self: center;
 }
 
 .environment-sidebar h3 {
@@ -76,7 +74,7 @@ body {
 .env-buttons-vertical {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 12px;
     align-items: center;
     justify-items: center;
 }
@@ -85,19 +83,19 @@ body {
     background: linear-gradient(145deg, #805ad5, #6b46c1);
     color: #fff;
     border: none;
-    padding: 12px 18px;
-    border-radius: 12px;
-    font-size: 0.9em;
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-size: 0.85em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     border: 1px solid rgba(255, 255, 255, 0.2);
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     width: 100%;
-    max-width: 220px;
+    max-width: 200px;
     text-align: center;
     box-shadow: 0 4px 15px rgba(128, 90, 213, 0.3);
-    min-height: 45px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -120,7 +118,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
     width: 100%;
-    max-width: 220px;
+    max-width: 200px;
 }
 
 .env-buttons-vertical .file-upload-container .env-btn:hover {
@@ -236,10 +234,64 @@ body {
     justify-content: center;
     align-items: center;
     position: relative;
-    min-height: 450px;
-    max-height: 550px;
-    grid-column: 2;
+    min-height: 500px;
+    padding: 20px;
+    margin: auto;
+}
+
+/* Right Info Container */
+.right-info-container {
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    height: auto;
+    max-height: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     align-self: center;
+    justify-self: center;
+}
+
+/* Move Information Panel */
+.move-info-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.move-info-panel h4,
+.recent-moves-panel h4 {
+    color: #ffd700;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Recent Moves Panel */
+.recent-moves-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
 }
 
 .board-container::before {
@@ -404,8 +456,9 @@ body {
     display: flex;
     justify-content: center;
     gap: 30px;
-    margin-bottom: 25px;
-    margin-top: 40px;
+    margin: 25px auto;
+    max-width: 800px;
+    padding: 0 20px;
 }
 
 .control-group {
@@ -642,148 +695,32 @@ body {
 .legend-symbol.stench { color: #fc8181; }
 .legend-symbol.glitter { color: #ffd700; }
 
-/* Right Info Container */
-.right-info-container {
+/* Move Information Panel */
+.move-info-panel {
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 15px;
-    width: 100%;
-    align-self: center;
-    height: auto;
-    max-height: 460px;
-}
-
-/* Move Information Panel */
-.move-info-panel {
-    background: rgba(30, 41, 59, 0.7);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 15px;
-    padding: 15px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    flex-shrink: 0;
-    max-height: none;
-    min-height: 280px;
-    overflow: visible;
-}
-
-.move-info-panel h4 {
-    color: #f1c40f;
-    margin: 0 0 15px 0;
-    font-size: 14px;
-    text-align: center;
-    border-bottom: 2px solid rgba(241, 196, 15, 0.3);
-    padding-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.move-details {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-height: none;
-    overflow: visible;
-    padding-right: 0;
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 8px;
-    background: rgba(51, 65, 85, 0.5);
-    border-radius: 6px;
-    border-left: 3px solid transparent;
-    transition: all 0.3s ease;
-    min-height: 30px;
-    margin-bottom: 3px;
-}
-
-.info-item:hover {
-    background: rgba(51, 65, 85, 0.8);
-    border-left-color: #3b82f6;
-    transform: translateX(2px);
-}
-
-.info-label {
-    font-size: 11px;
-    color: #94a3b8;
-    font-weight: 600;
-}
-
-.info-value {
-    font-size: 11px;
-    color: #e2e8f0;
-    font-weight: 700;
-    text-align: right;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    word-wrap: break-word;
-}
-
-/* Special styling for percepts and move results that might have longer text */
-.info-item .info-value.percepts,
-.info-item .info-value.move-result {
-    max-width: 130px;
-    white-space: normal;
-    word-wrap: break-word;
-    font-size: 10px;
-    line-height: 1.3;
-    text-align: right;
-}
-
-.info-item.percepts-item,
-.info-item.move-result-item {
-    min-height: 35px;
-    align-items: flex-start;
-    padding-top: 8px;
-    padding-bottom: 8px;
-}
-
-.info-item.percepts-item .info-label,
-.info-item.move-result-item .info-label {
-    padding-top: 2px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Recent Moves Panel */
 .recent-moves-panel {
-    background: rgba(30, 41, 59, 0.7);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    padding: 15px;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    height: 160px;
-    max-height: 160px;
-    min-height: 160px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex-shrink: 0;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    scroll-behavior: smooth;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-.recent-moves-panel h4 {
-    color: #f1c40f;
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    text-align: center;
-    border-bottom: 2px solid rgba(241, 196, 15, 0.3);
-    padding-bottom: 6px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-    position: sticky;
-    top: 0;
-    background: rgba(30, 41, 59, 0.95);
-    z-index: 2;
-    flex-shrink: 0;
-}
-
-/* Move History Panel - Updated */
 .move-history-panel {
     margin-top: 0;
     background: rgba(30, 41, 59, 0.7);
@@ -991,31 +928,41 @@ body {
 }
 
 /* Responsive Design */
-@media (min-width: 1200px) {
+@media (max-width: 1400px) {
     .main-game-area {
-        gap: 40px;
+        grid-template-columns: 200px minmax(400px, 1fr) 220px;
+        gap: 25px;
+        padding: 15px;
     }
-    
-    .board {
-        padding: 25px;
-    }
-    
-    .cell {
-        width: 52px;
-        height: 52px;
-        font-size: 1.6em;
+}
+
+@media (max-width: 1200px) {
+    .main-game-area {
+        grid-template-columns: 180px minmax(350px, 1fr) 200px;
+        gap: 20px;
     }
 }
 
 @media (max-width: 1024px) {
-    .cell {
-        width: 42px;
-        height: 42px;
-        font-size: 1.3em;
+    .main-game-area {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+        gap: 20px;
     }
     
-    .board {
-        padding: 18px;
+    .environment-sidebar,
+    .right-info-container {
+        max-height: none;
+        align-self: stretch;
+        justify-self: stretch;
+    }
+    
+    .board-container {
+        order: -1;
+    }
+    
+    .controls {
+        max-width: 100%;
     }
 }
 
