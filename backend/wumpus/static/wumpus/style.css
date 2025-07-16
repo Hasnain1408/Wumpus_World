@@ -34,7 +34,7 @@ body {
     display: grid;
     grid-template-columns: 220px minmax(500px, 1fr) 280px;
     gap: 30px;
-    align-items: center;
+    align-items: start;
     justify-content: center;
     margin: 30px auto;
     position: relative;
@@ -57,8 +57,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 15px;
-    align-self: center;
+    align-self: start;
     justify-self: center;
+    margin-top: 40px;
 }
 
 .environment-sidebar h3 {
@@ -229,6 +230,16 @@ body {
     color: #ffd700;
 }
 
+/* Board and Controls Container */
+.board-and-controls-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    margin-top: 20px;
+}
+
 .board-container {
     display: flex;
     justify-content: center;
@@ -236,7 +247,7 @@ body {
     position: relative;
     min-height: 500px;
     padding: 20px;
-    margin: auto;
+    margin: 0 auto;
 }
 
 /* Right Sidebar Wrapper */
@@ -245,8 +256,9 @@ body {
     flex-direction: column;
     gap: 20px;
     width: 100%;
-    align-self: center;
+    align-self: start;
     justify-self: center;
+    margin-top: 40px;
 }
 
 /* Move Information Panel */
@@ -514,9 +526,10 @@ body {
     display: flex;
     justify-content: center;
     gap: 30px;
-    margin: 25px auto;
+    margin: 10px auto 0 auto;
     max-width: 800px;
     padding: 0 20px;
+    width: 100%;
 }
 
 .control-group {
@@ -1051,6 +1064,7 @@ body {
         max-height: none;
         align-self: stretch;
         justify-self: stretch;
+        margin-top: 0;
     }
     
     .right-sidebar-wrapper {
@@ -1062,12 +1076,19 @@ body {
         max-height: 220px;
     }
     
-    .board-container {
+    .board-and-controls-container {
         order: -1;
+        margin-top: 0;
     }
     
     .controls {
         max-width: 100%;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .control-group {
+        min-width: auto;
     }
 }
 
