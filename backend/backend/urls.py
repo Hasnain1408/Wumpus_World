@@ -19,5 +19,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('wumpus.urls')),
+    path('', include('wumpus.urls')), # Include URLs from the wumpus app --> mandatory for routing to the main logic of the Wumpus World game
 ]

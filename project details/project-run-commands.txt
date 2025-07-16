@@ -1,13 +1,11 @@
 cd path/to/WUMPUS_WORLD  # Navigate to your project folder
 
-# Create virtual environment (macOS/Linux)
+## Create virtual environment (macOS/Linux)
 python3 -m venv venv
 
-# Activate the environment
+## Activate the environment
 source venv/bin/activate
 
+## Navigate to 'outer --> backend' folder
 pip install -r requirements.txt
-
-python manage.py migrate # No Need
- 
 python manage.py runserver
