@@ -80,6 +80,12 @@ class WumpusWorldUI {
         this.updateStatusValue('current-percepts', 'None');
         this.updateStatusValue('ai-move-suggestion', '-');
         
+        // Initialize AI info text
+        const aiSuggestionElement = document.getElementById('ai-suggestion');
+        if (aiSuggestionElement) {
+            aiSuggestionElement.textContent = 'AI ready to analyze...';
+        }
+        
         // Generate initial random environment (delayed to ensure CSRF token is ready)
         setTimeout(() => {
             this.generateRandomEnvironment();
@@ -214,6 +220,14 @@ class WumpusWorldUI {
         // Stop AI if switching to manual
         if (mode === 'manual' && this.aiPlaying) {
             this.pauseAI();
+        }
+        
+        // Reset AI info text when switching to AI mode
+        if (mode === 'ai') {
+            const aiSuggestionElement = document.getElementById('ai-suggestion');
+            if (aiSuggestionElement) {
+                aiSuggestionElement.textContent = 'AI ready to analyze...';
+            }
         }
         
         this.showMessage(`Switched to ${mode === 'manual' ? 'Manual' : 'AI'} mode`);
@@ -663,6 +677,12 @@ class WumpusWorldUI {
         if (this.aiInterval) {
             clearInterval(this.aiInterval);
             this.aiInterval = null;
+        }
+        
+        // Reset AI info text when paused
+        const aiSuggestionElement = document.getElementById('ai-suggestion');
+        if (aiSuggestionElement) {
+            aiSuggestionElement.textContent = 'AI ready to analyze...';
         }
         
         // Update button states
