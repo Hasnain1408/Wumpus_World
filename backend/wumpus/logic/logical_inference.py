@@ -34,22 +34,18 @@ class LogicalInference:
         self.possible_pits: Set[Tuple[int, int]] = set()
         self.frontier: Set[Tuple[int, int]] = set()
         
-        # Track cells that are safe from specific dangers
         self.safe_from_pits: Set[Tuple[int, int]] = set()
         self.safe_from_wumpus: Set[Tuple[int, int]] = set()
         
-        # Constraint tracking
         self.breeze_constraints: Set[Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]]] = set()
         self.stench_constraints: Set[Tuple[Tuple[int, int], Tuple[Tuple[int, int], ...]]] = set()
         
-        # Initialize with starting position as safe
         start_pos = (0, board.size - 1)
         self.safe_cells.add(start_pos)
         self.safe_from_pits.add(start_pos)
         self.safe_from_wumpus.add(start_pos)
         self.add_knowledge(start_pos, {'safe': True, 'visited': True})
         
-        # Debug mode
         self.debug = True
     
     def add_knowledge(self, position: Tuple[int, int], facts: Dict[str, bool], confidence: float = 1.0):
@@ -57,7 +53,6 @@ class LogicalInference:
         if position not in self.knowledge_base:
             self.knowledge_base[position] = Knowledge(position, {}, confidence)
         
-        # Update facts
         self.knowledge_base[position].facts.update(facts)
         self.knowledge_base[position].confidence = min(self.knowledge_base[position].confidence, confidence)
         
@@ -73,7 +68,6 @@ class LogicalInference:
         current_pos = (self.board.agent.x, self.board.agent.y)
         percepts = getattr(move, 'percepts', {})
         
-        # Ensure we have the current percepts
         if not percepts:
             percepts = self.board.get_percepts()
         
@@ -82,12 +76,11 @@ class LogicalInference:
             #print(f"Updating knowledge for position {current_pos} with percepts: {percepts}")
             #print(f"Agent direction: {self.board.agent.direction}")
             pass
-        # Add current position to visited and safe
+
         self.safe_cells.add(current_pos)
         self.safe_from_pits.add(current_pos)
         self.safe_from_wumpus.add(current_pos)
         
-        # Add percept information
         facts = {
             'visited': True,
             'safe': True,
@@ -98,20 +91,16 @@ class LogicalInference:
         
         self.add_knowledge(current_pos, facts)
         
-        # Update frontier BEFORE applying logical rules
         self.update_frontier()
         
-        # Apply logical rules
         self.apply_logical_rules(current_pos, percepts)
         
-        # Perform constraint satisfaction
         self.solve_constraints()
     
     def update_frontier(self):
         """Update frontier cells (unvisited adjacent cells)"""
         self.frontier.clear()
         
-        # Get all adjacent cells to visited cells
         for visited_pos in self.board.visited_cells:
             x, y = visited_pos
             for dx, dy in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
@@ -183,7 +172,6 @@ class LogicalInference:
                         self.possible_pits.add(adj_pos)
                         self.add_knowledge(adj_pos, {'possible_pit': True}, 0.5)
                     
-                    # Add constraint
                     self.breeze_constraints.add(constraint)
                 else:
                     if self.debug:
@@ -203,12 +191,10 @@ class LogicalInference:
                         #print(f"Stench detected - adding NEW wumpus constraint for {unvisited_adjacent}")
                         pass
                     
-                    # Add to possible wumpus
                     for adj_pos in unvisited_adjacent:
                         self.possible_wumpus.add(adj_pos)
                         self.add_knowledge(adj_pos, {'possible_wumpus': True}, 0.5)
                     
-                    # Add constraint
                     self.stench_constraints.add(constraint)
                 else:
                     if self.debug:
@@ -221,13 +207,10 @@ class LogicalInference:
             #print("logical_inference.solve_constraints() -> ")
             pass
         
-        # Solve pit constraints
         self.solve_pit_constraints()
         
-        # Solve wumpus constraints
         self.solve_wumpus_constraints()
         
-        # Update safe cells
         self.update_safe_cells()
     
     def solve_pit_constraints(self):
@@ -240,7 +223,6 @@ class LogicalInference:
             pass
             #print(f"Solving {len(self.breeze_constraints)} pit constraints")
         
-        # Get all possible pit locations
         all_possible_pits = set()
         for _, adjacent_cells in self.breeze_constraints:
             all_possible_pits.update(adjacent_cells)
@@ -248,14 +230,12 @@ class LogicalInference:
         #print(f"---------Breeze Constraints--------- : {self.breeze_constraints}")
         #print(f"------Possible pit locations before filtering ---- : {all_possible_pits}")
         
-        # Remove cells that are already known to be safe from pits
         all_possible_pits = {pos for pos in all_possible_pits if pos not in self.safe_from_pits}
         #print(f"------Possible pit locations after filtering ---- : {all_possible_pits}")
         
         if not all_possible_pits:
             return
         
-        # Try all possible combinations of pit placements
         valid_assignments = []
         
         # For efficiency, limit the search space
@@ -445,7 +425,7 @@ class LogicalInference:
                     return 'shoot'
                 return self.get_move_from_path(agent_pos, risky_path)
             
-            return None  # Can't find any path home
+            return None
 
         # 2. Normal exploration logic (when not holding gold)
         unvisited = [
@@ -458,11 +438,11 @@ class LogicalInference:
 
         # 3. Try A* to safe targets first
         if safe_unvisited:
-            safe_unvisited.sort(key=lambda pos: (
-                self.manhattan_distance(agent_pos, pos),
+            safe_unvisited.sort(key=lambda pos: (self.manhattan_distance(agent_pos, pos)))
+            ''',
                 -len([p for p in self.board.get_adjacent_positions(*pos) 
                     if p not in self.board.visited_cells])
-            ))
+            ))'''
             for target in safe_unvisited:
                 path = self.a_star_search(agent_pos, target)
                 if path:
@@ -622,7 +602,7 @@ class LogicalInference:
         elif dy < 0:
             return 'up'
         else:
-            return 'right'  # Default if same position
+            return 'right'
     
     def get_turn_to_direction(self, current_direction: str, target_direction: str) -> str:
         """Get the turn command to face target direction"""
@@ -647,11 +627,11 @@ class LogicalInference:
         elif diff == 1:
             return 'turn_right'
         elif diff == 2:
-            return 'turn_right'  # Turn around - use right turns consistently
+            return 'turn_right'
         elif diff == 3:
             return 'turn_left'
         else:
-            return 'turn_right'  # Default
+            return 'turn_right'
     
     def calculate_risk(self, position: Tuple[int, int]) -> float:
         """Calculate risk score for a position (0 = safe, 1 = definitely dangerous)"""
@@ -770,8 +750,6 @@ class LogicalInference:
         print("=" * 70 + "\n")
 
 
-    
-    # Keep all other methods from the original class for compatibility
     def get_safe_cells(self) -> List[Tuple[int, int]]:
         return list(self.safe_cells)
     
