@@ -15,40 +15,30 @@ class WumpusWorldUI {
     }
 
     async initializeCSRF() {
-        // Try to get CSRF token from multiple sources
         await this.ensureCSRFToken();
-        // Load game state after CSRF token is available
         this.loadGameState();
     }
 
     async ensureCSRFToken() {
-        // Try to get CSRF token from window (if set in template)
         if (window.csrfToken) {
             this.csrfToken = window.csrfToken;
             return;
         }
-
-        // Try to get from cookie
         const cookieToken = this.getCSRFTokenFromCookie();
         if (cookieToken) {
             this.csrfToken = cookieToken;
             return;
         }
-
-        // Try to get from meta tag
         const metaToken = this.getCSRFTokenFromMeta();
         if (metaToken) {
             this.csrfToken = metaToken;
             return;
         }
-
-        // Last resort: make a GET request to get CSRF token
         try {
             const response = await fetch('/api/csrf-token/', {
                 method: 'GET',
                 credentials: 'include'
             });
-            
             if (response.ok) {
                 const data = await response.json();
                 this.csrfToken = data.csrfToken;
@@ -69,7 +59,6 @@ class WumpusWorldUI {
     }
 
     initializeUI() {
-        // Initialize the game board UI
         this.renderBoard();
         this.setupEventListeners();
         this.createNotificationContainer();
@@ -93,7 +82,6 @@ class WumpusWorldUI {
     }
 
     createNotificationContainer() {
-        // Create notification container if it doesn't exist
         if (!document.getElementById('notification-container')) {
             const container = document.createElement('div');
             container.id = 'notification-container';
@@ -124,26 +112,18 @@ class WumpusWorldUI {
             pointer-events: auto;
             cursor: pointer;
         `;
-
-        // Add colored border based on type
         const borderColors = {
             'success': '#38a169',
             'error': '#e53e3e',
             'info': '#3182ce',
             'warning': '#d69e2e'
         };
-        
         notification.style.borderLeft = `4px solid ${borderColors[type] || borderColors.info}`;
-        
         const container = document.getElementById('notification-container');
         container.appendChild(notification);
-        
-        // Show notification
         setTimeout(() => {
             notification.style.transform = 'translateX(0)';
         }, 100);
-        
-        // Auto-hide after 3 seconds
         setTimeout(() => {
             notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
@@ -152,8 +132,6 @@ class WumpusWorldUI {
                 }
             }, 300);
         }, 3000);
-        
-        // Click to dismiss
         notification.addEventListener('click', () => {
             notification.style.transform = 'translateX(100%)';
             setTimeout(() => {
@@ -166,24 +144,15 @@ class WumpusWorldUI {
 
     updateGameInfo() {
         if (!this.gameState) return;
-        
         const scoreElement = document.getElementById('score');
         const arrowsElement = document.getElementById('arrows');
         const statusElement = document.getElementById('status');
-        
         if (scoreElement) scoreElement.textContent = this.gameState.score || 0;
         if (arrowsElement) arrowsElement.textContent = this.gameState.agent?.arrows || 0;
-        
-        // Update game status
         if (statusElement) {
             if (this.gameState.game_over) {
-                if (this.gameState.game_won) {
-                    statusElement.textContent = 'Victory!';
-                    statusElement.style.color = '#38a169';
-                } else {
-                    statusElement.textContent = 'Game Over';
-                    statusElement.style.color = '#e53e3e';
-                }
+                statusElement.textContent = this.gameState.game_won ? 'Victory!' : 'Game Over';
+                statusElement.style.color = this.gameState.game_won ? '#38a169' : '#e53e3e';
             } else {
                 statusElement.textContent = 'Playing';
                 statusElement.style.color = '#ffd700';
@@ -195,29 +164,21 @@ class WumpusWorldUI {
     }
 
     setupEventListeners() {
-        // Add event listeners for UI controls
         document.addEventListener('keydown', (e) => this.handleKeyboardInput(e));
     }
 
     setGameMode(mode) {
         this.gameMode = mode;
-        
-        // Update UI elements if they exist
         const manualModeElement = document.getElementById('manual-mode');
         const aiModeElement = document.getElementById('ai-mode');
         const currentModeElement = document.getElementById('current-mode');
         const manualControlsElement = document.getElementById('manual-controls');
         const aiControlsElement = document.getElementById('ai-controls');
-        
         if (manualModeElement) manualModeElement.classList.toggle('active', mode === 'manual');
         if (aiModeElement) aiModeElement.classList.toggle('active', mode === 'ai');
         if (currentModeElement) currentModeElement.textContent = mode === 'manual' ? 'Manual' : 'AI';
-        
-        // Show/hide appropriate controls
         if (manualControlsElement) manualControlsElement.style.display = mode === 'manual' ? 'block' : 'none';
         if (aiControlsElement) aiControlsElement.style.display = mode === 'ai' ? 'block' : 'none';
-        
-        // Stop AI if switching to manual
         if (mode === 'manual' && this.aiPlaying) {
             this.pauseAI();
         }
@@ -229,7 +190,7 @@ class WumpusWorldUI {
                 aiSuggestionElement.textContent = 'AI ready to analyze...';
             }
         }
-        
+
         this.showMessage(`Switched to ${mode === 'manual' ? 'Manual' : 'AI'} mode`);
     }
 
@@ -243,7 +204,6 @@ class WumpusWorldUI {
                 credentials: 'include'
             });
             const data = await response.json();
-            
             if (data.success) {
                 await this.loadCustomEnvironment(data.environment);
                 this.showMessage('Random environment generated!', 'success');
@@ -257,13 +217,10 @@ class WumpusWorldUI {
     }
 
     async loadGameState() {
-        // Ensure we have a CSRF token before making the request
         if (!this.csrfToken) {
             await this.ensureCSRFToken();
         }
-
         try {
-            // Try POST request first
             let response = await fetch('/api/game-state/', {
                 method: 'POST',
                 headers: {
@@ -275,8 +232,6 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
-            
-            // If POST fails due to CSRF issues, try GET request as fallback
             if (!response.ok && response.status === 403) {
                 console.log('POST request failed, trying GET request...');
                 response = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
@@ -284,9 +239,7 @@ class WumpusWorldUI {
                     credentials: 'include'
                 });
             }
-            
             const data = await response.json();
-            
             if (data.success) {
                 this.gameState = data.game_state;
                 this.renderBoard();
@@ -296,17 +249,13 @@ class WumpusWorldUI {
             }
         } catch (error) {
             console.error('Error loading game state:', error);
-            
-            // Final fallback: try GET request without CSRF
             try {
                 console.log('Trying GET request as final fallback...');
                 const fallbackResponse = await fetch(`/api/game-state/?session_id=${encodeURIComponent(this.sessionId)}`, {
                     method: 'GET',
                     credentials: 'include'
                 });
-                
                 const fallbackData = await fallbackResponse.json();
-                
                 if (fallbackData.success) {
                     this.gameState = fallbackData.game_state;
                     this.renderBoard();
@@ -325,35 +274,24 @@ class WumpusWorldUI {
     renderBoard() {
         const boardElement = document.getElementById('wumpus-board');
         if (!boardElement) return;
-        
         boardElement.innerHTML = '';
-
         for (let y = 0; y < this.boardSize; y++) {
             for (let x = 0; x < this.boardSize; x++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.dataset.x = x;
                 cell.dataset.y = y;
-                
                 const cellContent = document.createElement('div');
                 cellContent.className = 'cell-content';
-                
                 const mainContent = document.createElement('div');
                 mainContent.className = 'cell-main';
-                
                 const indicators = document.createElement('div');
                 indicators.className = 'cell-indicators';
-
-                // Populate cell content based on game state
                 this.populateCellContent(x, y, mainContent, indicators, cell);
-
                 cellContent.appendChild(mainContent);
                 cellContent.appendChild(indicators);
                 cell.appendChild(cellContent);
-                
-                // Add click event for cell selection
                 cell.addEventListener('click', () => this.handleCellClick(x, y));
-                
                 boardElement.appendChild(cell);
             }
         }
@@ -361,17 +299,21 @@ class WumpusWorldUI {
 
     populateCellContent(x, y, mainContent, indicators, cell) {
         if (!this.gameState) return;
-
         const cellData = this.gameState.board[y][x];
         mainContent.textContent = '';
         indicators.innerHTML = '';
         cell.className = 'cell';
-
         const agentX = this.gameState.agent?.x || 0;
         const agentY = this.gameState.agent?.y || 0;
         const isCurrent = (agentX === x && agentY === y);
         const isVisited = this.isCellVisible(x, y);
-
+        const isAdjacent = this.isCellAdjacent(x, y, agentX, agentY);
+        const isAdjacentSafe = isAdjacent && this.isCellSafe(x, y);
+        const isAdjacentDanger = isAdjacent && !this.isCellSafe(x, y);
+        
+        // Debug logging
+        console.log(`Cell (${x},${y}): isCurrent=${isCurrent}, isVisited=${isVisited}, isAdjacent=${isAdjacent}, isAdjacentSafe=${isAdjacentSafe}, isAdjacentDanger=${isAdjacentDanger}`);
+        
         // Show agent
         if (isCurrent) {
             mainContent.textContent = '🤖';
@@ -388,7 +330,6 @@ class WumpusWorldUI {
                 indicators.innerHTML += '<span title="Glitter - Gold here">✨</span>';
             }
         } else if (this.showEnvironment || isVisited) {
-            // Show environment elements if revealed or visited
             if (cellData.wumpus && this.gameState.wumpus_alive) {
                 mainContent.textContent = '👹';
                 cell.classList.add('danger');
@@ -401,7 +342,7 @@ class WumpusWorldUI {
                 cell.classList.add('danger');
             }
         }
-
+        
         // Show percepts if revealed or visited (but not on agent's current cell)
         if ((this.showEnvironment || isVisited) && !isCurrent) {
             if (cellData.breeze) {
@@ -414,36 +355,72 @@ class WumpusWorldUI {
                 indicators.innerHTML += '<span title="Glitter - Gold here">✨</span>';
             }
         }
-
-        // Only add visited/safe classes for truly visited cells
-        if (isVisited) {
+        
+        // Apply visited styling for visited cells (except current)
+        if (isVisited && !isCurrent) {
             cell.classList.add('visited');
+            console.log(`Added 'visited' class to cell (${x},${y})`);
         }
-        if (this.isCellSafe(x, y) && isVisited) {
+        
+        // Apply safe styling for safe visited cells (except current)
+        if (this.isCellSafe(x, y) && isVisited && !isCurrent) {
             cell.classList.add('safe');
+            console.log(`Added 'safe' class to cell (${x},${y})`);
         }
+        
+        // Apply adjacent cell styling (only for non-current cells)
+        if (isAdjacent && !isCurrent) {
+            if (isAdjacentSafe) {
+                cell.classList.add('adjacent-safe');
+                console.log(`Added 'adjacent-safe' class to cell (${x},${y})`);
+            } else if (isAdjacentDanger) {
+                cell.classList.add('adjacent-danger');
+                console.log(`Added 'adjacent-danger' class to cell (${x},${y})`);
+            }
+        }
+        
         cell.title = `(${x}, ${y})`;
     }
 
     isCellVisible(x, y) {
-        if (!this.gameState) return false;
-        return this.gameState.visited_cells.includes(`${x},${y}`);
+        if (!this.gameState || !this.gameState.visited_cells) {
+            return false;
+        }
+        let visitedCells = this.gameState.visited_cells;
+        if (visitedCells instanceof Set || (Array.isArray(visitedCells) && visitedCells.length > 0 && Array.isArray(visitedCells[0]))) {
+            visitedCells = Array.from(visitedCells);
+        } else if (Array.isArray(visitedCells) && visitedCells.length > 0 && typeof visitedCells[0] === 'string') {
+            visitedCells = visitedCells.map(cell => cell.split(',').map(Number));
+        } else if (Array.isArray(visitedCells) && visitedCells.length > 0 && typeof visitedCells[0] === 'object') {
+            visitedCells = visitedCells.map(cell => [cell.x, cell.y]);
+        }
+        return visitedCells.some(cell => cell[0] === x && cell[1] === y);
     }
 
     isCellSafe(x, y) {
         if (!this.gameState) return false;
-        
         const cellData = this.gameState.board[y][x];
+        // Check game state adjacent_cells for safety
+        const adjacentCell = this.gameState.adjacent_cells?.find(cell => cell.x === x && cell.y === y);
+        if (adjacentCell) {
+            return adjacentCell.safe;
+        }
+        // Fallback to checking cell properties
         return !cellData.pit && !cellData.wumpus;
+    }
+
+    isCellAdjacent(x, y, agentX, agentY) {
+        return (
+            (Math.abs(x - agentX) === 1 && y === agentY) ||
+            (Math.abs(y - agentY) === 1 && x === agentX)
+        );
     }
 
     handleCellClick(x, y) {
         console.log(`Clicked cell (${x}, ${y})`);
-        // This can be used for pathfinding or manual movement later
     }
 
     async makeMove(action) {
-        // In AI mode, don't allow manual moves
         if (this.gameMode === 'ai' && this.aiPlaying) {
             return;
         }
@@ -466,12 +443,11 @@ class WumpusWorldUI {
                     action: action
                 })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 const oldGameState = this.gameState;
                 this.gameState = data.game_state;
+              
                 console.log('Game state updated:', this.gameState.agent); // Debug log
                 
                 // Current position after move
@@ -499,7 +475,7 @@ class WumpusWorldUI {
                 
                 // Check if game ended
                 if (this.gameState.game_over) {
-                    this.pauseAI(); // Stop AI if game ended
+                    this.pauseAI();
                 }
             } else {
                 this.showMessage(data.message, 'error');
@@ -525,12 +501,9 @@ class WumpusWorldUI {
     }
 
     getCSRFToken() {
-        // Return the stored CSRF token or try to get it fresh
         if (this.csrfToken) {
             return this.csrfToken;
         }
-
-        // Try to get from cookie as fallback
         const cookieValue = document.cookie.match('(^|;)\\s*csrftoken\\s*=\\s*([^;]+)');
         return cookieValue ? cookieValue.pop() : '';
     }
@@ -546,7 +519,6 @@ class WumpusWorldUI {
             { x: 0, y: 9 };
 
         try {
-            // First get AI hint
             const hintResponse = await fetch('/api/ai-hint/', {
                 method: 'POST',
                 headers: {
@@ -558,14 +530,11 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
-            
             const hintData = await hintResponse.json();
-            
             if (hintData.success && hintData.suggestion) {
                 // Update AI suggestion display
                 this.updateAISuggestion(hintData.suggestion);
                 
-                // Make the suggested move
                 const moveResponse = await fetch('/api/make-move/', {
                     method: 'POST',
                     headers: {
@@ -578,11 +547,10 @@ class WumpusWorldUI {
                         action: hintData.suggestion
                     })
                 });
-                
                 const moveData = await moveResponse.json();
-                
                 if (moveData.success) {
                     this.gameState = moveData.game_state;
+
                     console.log('AI move - Game state updated:', this.gameState.agent); // Debug log
                     
                     // Current position after move
@@ -609,6 +577,7 @@ class WumpusWorldUI {
                     });
                     
                     // Update AI info display
+
                     const aiSuggestionElement = document.getElementById('ai-suggestion');
                     if (aiSuggestionElement) {
                         aiSuggestionElement.textContent = `AI made move: ${hintData.suggestion}`;
@@ -649,31 +618,23 @@ class WumpusWorldUI {
         if (this.gameMode !== 'ai' || this.aiPlaying) {
             return;
         }
-
         this.aiPlaying = true;
         this.showMessage('AI Auto-play started', 'info');
-        
-        // Update button states
         const autoPlayBtn = document.querySelector('button[onclick="autoPlay()"]');
         const pauseBtn = document.querySelector('button[onclick="pauseAI()"]');
-        
         if (autoPlayBtn) autoPlayBtn.disabled = true;
         if (pauseBtn) pauseBtn.disabled = false;
-
         this.aiInterval = setInterval(async () => {
             if (!this.aiPlaying || !this.gameState || this.gameState.game_over) {
                 this.pauseAI();
                 return;
             }
-
             await this.makeAIMove();
-            
         }, this.moveDelay);
     }
 
     pauseAI() {
         this.aiPlaying = false;
-        
         if (this.aiInterval) {
             clearInterval(this.aiInterval);
             this.aiInterval = null;
@@ -688,19 +649,15 @@ class WumpusWorldUI {
         // Update button states
         const autoPlayBtn = document.querySelector('button[onclick="autoPlay()"]');
         const pauseBtn = document.querySelector('button[onclick="pauseAI()"]');
-        
         if (autoPlayBtn) autoPlayBtn.disabled = false;
         if (pauseBtn) pauseBtn.disabled = true;
-        
         this.showMessage('AI Auto-play paused', 'info');
     }
 
     async resetGame() {
-        // Stop AI if running
         if (this.aiPlaying) {
             this.pauseAI();
         }
-        
         try {
             const response = await fetch('/api/reset-game/', {
                 method: 'POST',
@@ -713,9 +670,7 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 this.gameState = data.game_state;
                 this.renderBoard();
@@ -771,9 +726,7 @@ class WumpusWorldUI {
                     environment: environmentData
                 })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 this.gameState = data.game_state;
                 this.renderBoard();
@@ -799,12 +752,39 @@ class WumpusWorldUI {
                 credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId,
+                    file_path: filePath
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                this.gameState = data.game_state;
+                this.renderBoard();
+                this.updateGameInfo();
+                this.showMessage('Environment loaded from file successfully', 'success');
+            } else {
+                this.showMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading environment from file:', error);
+            this.showMessage('Error loading environment from file', 'error');
+        }
+    }
+
+    async loadDefaultEnvironment() {
+        try {
+            const response = await fetch('/api/load-default-environment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCSRFToken(),
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    session_id: this.sessionId
                     file_content: fileContent
                 })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 this.gameState = data.game_state;
                 this.renderBoard();
@@ -832,9 +812,7 @@ class WumpusWorldUI {
                     session_id: this.sessionId
                 })
             });
-            
             const data = await response.json();
-            
             if (data.success) {
                 this.showMessage(`AI suggests: ${data.suggestion}`, 'info');
                 this.updateAISuggestion(data.suggestion);
@@ -854,11 +832,9 @@ class WumpusWorldUI {
     }
 
     handleKeyboardInput(event) {
-        // Only allow keyboard input in manual mode
         if (this.gameMode !== 'manual' || !this.gameState || this.gameState.game_over) {
             return;
         }
-
         switch (event.key) {
             case 'ArrowUp':
             case 'w':
@@ -1084,7 +1060,6 @@ class WumpusWorldUI {
     // ...existing code...
 }
 
-// Global UI instance
 let gameUI;
 
 // File upload handler - defined early to ensure availability
@@ -1130,7 +1105,6 @@ document.addEventListener('DOMContentLoaded', function() {
     gameUI = new WumpusWorldUI();
 });
 
-// Button event handlers (called by HTML buttons)
 function moveAgent(direction) {
     if (gameUI) {
         gameUI.makeMove(`move_${direction}`);
@@ -1173,7 +1147,6 @@ function loadCustomEnvironment(environmentData) {
     }
 }
 
-// New global functions for game mode control and AI functionality
 function setGameMode(mode) {
     if (gameUI) {
         gameUI.setGameMode(mode);
@@ -1210,7 +1183,22 @@ function toggleEnvironment() {
     }
 }
 
-// Example of how to use custom environment
+// <<<<<<< 1408-Hasnain
+// function loadEnvironmentFromFile(filePath = null) {
+//     if (gameUI) {
+//         gameUI.loadDefaultEnvironment();
+//     }
+// }
+
+// function loadDefaultEnvironment() {
+//     if (gameUI) {
+//         gameUI.loadDefaultEnvironment();
+//     }
+// }
+
+// =======
+// // Example of how to use custom environment
+// >>>>>>> test-color
 function loadExampleEnvironment() {
     const exampleEnv = {
         wumpus: { x: 5, y: 3 },
@@ -1222,6 +1210,5 @@ function loadExampleEnvironment() {
             { x: 1, y: 1 }
         ]
     };
-    
     loadCustomEnvironment(exampleEnv);
 }
