@@ -62,6 +62,20 @@ class WumpusWorldUI {
         this.renderBoard();
         this.setupEventListeners();
         this.createNotificationContainer();
+        
+        // Initialize move information displays
+        this.updateStatusValue('last-move', '-');
+        this.updateStatusValue('move-result', '-');
+        this.updateStatusValue('current-percepts', 'None');
+        this.updateStatusValue('ai-move-suggestion', '-');
+        
+        // Initialize AI info text
+        const aiSuggestionElement = document.getElementById('ai-suggestion');
+        if (aiSuggestionElement) {
+            aiSuggestionElement.textContent = 'AI ready to analyze...';
+        }
+        
+        // Generate initial random environment (delayed to ensure CSRF token is ready)
         setTimeout(() => {
             this.generateRandomEnvironment();
         }, 1000);
@@ -144,6 +158,9 @@ class WumpusWorldUI {
                 statusElement.style.color = '#ffd700';
             }
         }
+
+        // Update move information panel
+        this.updateMoveInfo();
     }
 
     setupEventListeners() {
@@ -165,6 +182,15 @@ class WumpusWorldUI {
         if (mode === 'manual' && this.aiPlaying) {
             this.pauseAI();
         }
+        
+        // Reset AI info text when switching to AI mode
+        if (mode === 'ai') {
+            const aiSuggestionElement = document.getElementById('ai-suggestion');
+            if (aiSuggestionElement) {
+                aiSuggestionElement.textContent = 'AI ready to analyze...';
+            }
+        }
+
         this.showMessage(`Switched to ${mode === 'manual' ? 'Manual' : 'AI'} mode`);
     }
 
@@ -398,6 +424,12 @@ class WumpusWorldUI {
         if (this.gameMode === 'ai' && this.aiPlaying) {
             return;
         }
+
+        // Store previous position for move tracking
+        const previousPos = this.gameState?.agent ? 
+            { x: this.gameState.agent.x, y: this.gameState.agent.y } : 
+            { x: 0, y: 9 };
+
         try {
             const response = await fetch('/api/make-move/', {
                 method: 'POST',
@@ -413,16 +445,54 @@ class WumpusWorldUI {
             });
             const data = await response.json();
             if (data.success) {
+                const oldGameState = this.gameState;
                 this.gameState = data.game_state;
-                console.log('Game state updated:', this.gameState.agent);
+              
+                console.log('Game state updated:', this.gameState.agent); // Debug log
+                
+                // Current position after move
+                const currentPos = this.gameState?.agent ? 
+                    { x: this.gameState.agent.x, y: this.gameState.agent.y } : 
+                    { x: 0, y: 9 };
+                
                 this.renderBoard();
                 this.updateGameInfo();
                 this.showMessage(data.message);
+                
+                // Update last move information
+                this.updateLastMove(action, data.message);
+                
+                // Add move to history with position tracking
+                this.addMoveToHistory({
+                    action: action,
+                    success: true,
+                    result: data.message,
+                    isAI: false,
+                    fromPos: previousPos,
+                    toPos: currentPos,
+                    gameState: this.gameState
+                });
+                
+                // Check if game ended
                 if (this.gameState.game_over) {
                     this.pauseAI();
                 }
             } else {
                 this.showMessage(data.message, 'error');
+                
+                // Update failed move
+                this.updateLastMove(action, data.message);
+                
+                // Add failed move to history
+                this.addMoveToHistory({
+                    action: action,
+                    success: false,
+                    result: data.message,
+                    isAI: false,
+                    fromPos: previousPos,
+                    toPos: previousPos, // Same position for failed moves
+                    gameState: this.gameState
+                });
             }
         } catch (error) {
             console.error('Error making move:', error);
@@ -442,6 +512,12 @@ class WumpusWorldUI {
         if (this.gameMode !== 'ai' || !this.gameState || this.gameState.game_over) {
             return;
         }
+
+        // Store previous position for move tracking
+        const previousPos = this.gameState?.agent ? 
+            { x: this.gameState.agent.x, y: this.gameState.agent.y } : 
+            { x: 0, y: 9 };
+
         try {
             const hintResponse = await fetch('/api/ai-hint/', {
                 method: 'POST',
@@ -456,6 +532,9 @@ class WumpusWorldUI {
             });
             const hintData = await hintResponse.json();
             if (hintData.success && hintData.suggestion) {
+                // Update AI suggestion display
+                this.updateAISuggestion(hintData.suggestion);
+                
                 const moveResponse = await fetch('/api/make-move/', {
                     method: 'POST',
                     headers: {
@@ -471,19 +550,59 @@ class WumpusWorldUI {
                 const moveData = await moveResponse.json();
                 if (moveData.success) {
                     this.gameState = moveData.game_state;
-                    console.log('AI move - Game state updated:', this.gameState.agent);
+
+                    console.log('AI move - Game state updated:', this.gameState.agent); // Debug log
+                    
+                    // Current position after move
+                    const currentPos = this.gameState?.agent ? 
+                        { x: this.gameState.agent.x, y: this.gameState.agent.y } : 
+                        { x: 0, y: 9 };
+                    
                     this.renderBoard();
                     this.updateGameInfo();
                     this.showMessage(`AI made move: ${hintData.suggestion}`, 'info');
+                    
+                    // Update last move information for AI
+                    this.updateLastMove(hintData.suggestion, moveData.message);
+                    
+                    // Add AI move to history with position tracking
+                    this.addMoveToHistory({
+                        action: hintData.suggestion,
+                        success: true,
+                        result: moveData.message,
+                        isAI: true,
+                        fromPos: previousPos,
+                        toPos: currentPos,
+                        gameState: this.gameState
+                    });
+                    
+                    // Update AI info display
+
                     const aiSuggestionElement = document.getElementById('ai-suggestion');
                     if (aiSuggestionElement) {
                         aiSuggestionElement.textContent = `AI made move: ${hintData.suggestion}`;
                     }
                 } else {
                     this.showMessage(`AI move failed: ${moveData.message}`, 'error');
+                    
+                    // Update failed AI move
+                    this.updateLastMove(hintData.suggestion, moveData.message);
+                    
+                    // Add failed AI move to history
+                    this.addMoveToHistory({
+                        action: hintData.suggestion,
+                        success: false,
+                        result: moveData.message,
+                        isAI: true,
+                        fromPos: previousPos,
+                        toPos: previousPos, // Same position for failed moves
+                        gameState: this.gameState
+                    });
                 }
             } else {
                 this.showMessage('AI could not determine a safe move', 'warning');
+                this.updateAISuggestion('No suggestion');
+                
                 const aiSuggestionElement = document.getElementById('ai-suggestion');
                 if (aiSuggestionElement) {
                     aiSuggestionElement.textContent = 'AI could not determine a safe move';
@@ -520,6 +639,14 @@ class WumpusWorldUI {
             clearInterval(this.aiInterval);
             this.aiInterval = null;
         }
+        
+        // Reset AI info text when paused
+        const aiSuggestionElement = document.getElementById('ai-suggestion');
+        if (aiSuggestionElement) {
+            aiSuggestionElement.textContent = 'AI ready to analyze...';
+        }
+        
+        // Update button states
         const autoPlayBtn = document.querySelector('button[onclick="autoPlay()"]');
         const pauseBtn = document.querySelector('button[onclick="pauseAI()"]');
         if (autoPlayBtn) autoPlayBtn.disabled = false;
@@ -549,6 +676,11 @@ class WumpusWorldUI {
                 this.renderBoard();
                 this.updateGameInfo();
                 this.showMessage('Game reset successfully', 'success');
+                
+                // Clear move information
+                this.clearMoveInfo();
+                
+                // Generate new random environment
                 setTimeout(() => {
                     this.generateRandomEnvironment();
                 }, 500);
@@ -558,6 +690,25 @@ class WumpusWorldUI {
         } catch (error) {
             console.error('Error resetting game:', error);
             this.showMessage('Error resetting game', 'error');
+        }
+    }
+
+    clearMoveInfo() {
+        // Reset move information
+        this.updateStatusValue('ai-move-suggestion', '-');
+        this.updateStatusValue('last-move', '-');
+        this.updateStatusValue('move-result', '-');
+        this.updateStatusValue('current-percepts', 'None');
+        this.updateStatusValue('agent-position', '(0, 9)');
+        this.updateStatusValue('game-over-status', 'False');
+        this.updateStatusValue('agent-alive', 'True');
+        this.updateStatusValue('agent-direction', '→');
+        this.updateStatusValue('has-gold', 'No');
+        
+        // Clear move history
+        const historyList = document.getElementById('move-history-list');
+        if (historyList) {
+            historyList.innerHTML = '<div class="no-moves">No moves yet</div>';
         }
     }
 
@@ -590,9 +741,9 @@ class WumpusWorldUI {
         }
     }
 
-    async loadEnvironmentFromFile(filePath = null) {
+    async loadEnvironmentFromUploadedFile(fileContent) {
         try {
-            const response = await fetch('/api/load-environment-from-file/', {
+            const response = await fetch('/api/load-environment-from-uploaded-file/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -630,6 +781,7 @@ class WumpusWorldUI {
                 credentials: 'include',
                 body: JSON.stringify({
                     session_id: this.sessionId
+                    file_content: fileContent
                 })
             });
             const data = await response.json();
@@ -637,13 +789,13 @@ class WumpusWorldUI {
                 this.gameState = data.game_state;
                 this.renderBoard();
                 this.updateGameInfo();
-                this.showMessage('Environment loaded from wumpus.txt', 'success');
+                this.showMessage('Environment loaded from uploaded file successfully', 'success');
             } else {
                 this.showMessage(data.message, 'error');
             }
         } catch (error) {
-            console.error('Error loading default environment:', error);
-            this.showMessage('Error loading wumpus.txt', 'error');
+            console.error('Error loading environment from uploaded file:', error);
+            this.showMessage('Error loading environment from uploaded file', 'error');
         }
     }
 
@@ -663,12 +815,15 @@ class WumpusWorldUI {
             const data = await response.json();
             if (data.success) {
                 this.showMessage(`AI suggests: ${data.suggestion}`, 'info');
+                this.updateAISuggestion(data.suggestion);
+                
                 const aiSuggestionElement = document.getElementById('ai-suggestion');
                 if (aiSuggestionElement) {
                     aiSuggestionElement.textContent = `AI suggests: ${data.suggestion}`;
                 }
             } else {
                 this.showMessage('No AI suggestion available', 'warning');
+                this.updateAISuggestion('No suggestion');
             }
         } catch (error) {
             console.error('Error getting AI hint:', error);
@@ -739,9 +894,213 @@ class WumpusWorldUI {
             'info'
         );
     }
+
+    updateMoveInfo() {
+        if (!this.gameState) return;
+
+        const agent = this.gameState.agent;
+        const cellsVisitedDisplay = document.getElementById('cells-visited-display');
+        const agentPosDisplay = document.getElementById('agent-pos-display');
+
+        // Update visited cells count
+        if (cellsVisitedDisplay) {
+            const visitedCount = this.gameState.visited_cells ? this.gameState.visited_cells.length : 0;
+            cellsVisitedDisplay.textContent = visitedCount;
+        }
+
+        // Update agent position
+        if (agentPosDisplay) {
+            agentPosDisplay.textContent = `(${agent?.x || 0}, ${agent?.y || 0})`;
+        }
+
+        // Update detailed move information
+        this.updateDetailedMoveInfo();
+        
+        // Update percepts
+        this.updatePercepts();
+    }
+
+    updateDetailedMoveInfo() {
+        if (!this.gameState) return;
+
+        const agent = this.gameState.agent;
+
+        // Update status values
+        this.updateStatusValue('agent-position', `(${agent?.x || 0}, ${agent?.y || 0})`);
+        this.updateStatusValue('game-over-status', this.gameState.game_over ? 'True' : 'False');
+        this.updateStatusValue('agent-alive', agent?.alive !== false ? 'True' : 'False');
+        
+        // Agent direction with symbol
+        const directionSymbols = {
+            'right': '→',
+            'left': '←',
+            'up': '↑',
+            'down': '↓'
+        };
+        this.updateStatusValue('agent-direction', directionSymbols[agent?.direction] || '→');
+        
+        this.updateStatusValue('has-gold', agent?.has_gold ? 'Yes' : 'No');
+    }
+
+    updateStatusValue(elementId, value) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    updatePercepts() {
+        if (!this.gameState || !this.gameState.agent) return;
+        
+        const agent = this.gameState.agent;
+        const x = agent.x;
+        const y = agent.y;
+        
+        if (!this.gameState.board || !this.gameState.board[y] || !this.gameState.board[y][x]) {
+            this.updateStatusValue('current-percepts', 'None');
+            return;
+        }
+        
+        const cellData = this.gameState.board[y][x];
+        const percepts = [];
+        
+        if (cellData.breeze) percepts.push('Breeze');
+        if (cellData.stench && this.gameState.wumpus_alive) percepts.push('Stench');
+        if (cellData.glitter) percepts.push('Glitter');
+        
+        const perceptText = percepts.length > 0 ? percepts.join(', ') : 'None';
+        this.updateStatusValue('current-percepts', perceptText);
+    }
+
+    updateLastMove(action, result) {
+        this.updateStatusValue('last-move', action || '-');
+        this.updateStatusValue('move-result', result || '-');
+    }
+
+    updateAISuggestion(suggestion) {
+        this.updateStatusValue('ai-move-suggestion', suggestion || '-');
+    }
+
+    addMoveToHistory(moveInfo) {
+        const historyList = document.getElementById('move-history-list');
+        if (!historyList) return;
+        
+        const placeholder = historyList.querySelector('.no-moves');
+        
+        // Remove placeholder message
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        // Create move entry with cleaner design
+        const moveEntry = document.createElement('div');
+        moveEntry.className = `move-entry ${moveInfo.isAI ? 'ai-move' : ''} ${!moveInfo.success ? 'failed-move' : ''}`;
+        
+        const actionIcon = this.getActionIcon(moveInfo.action);
+        
+        // Create position display for movement actions
+        let positionDisplay = '';
+        if (moveInfo.fromPos && moveInfo.toPos && this.isMovementAction(moveInfo.action)) {
+            if (moveInfo.success && (moveInfo.fromPos.x !== moveInfo.toPos.x || moveInfo.fromPos.y !== moveInfo.toPos.y)) {
+                positionDisplay = `<div class="move-position">📍 (${moveInfo.fromPos.x},${moveInfo.fromPos.y}) → (${moveInfo.toPos.x},${moveInfo.toPos.y})</div>`;
+            } else if (!moveInfo.success) {
+                positionDisplay = `<div class="move-position">📍 Failed at (${moveInfo.fromPos.x},${moveInfo.fromPos.y})</div>`;
+            }
+        }
+        
+        moveEntry.innerHTML = `
+            <div class="move-header">
+                <div class="move-action">${actionIcon} ${moveInfo.action}</div>
+                <div class="move-type ${moveInfo.isAI ? 'ai' : 'manual'}">${moveInfo.isAI ? 'AI' : 'Manual'}</div>
+            </div>
+            ${positionDisplay}
+            <div class="move-result">${moveInfo.result || ''}</div>
+        `;
+
+        // Add to top of list for latest moves first
+        historyList.insertBefore(moveEntry, historyList.firstChild);
+
+        // Keep only last 10 moves to prevent overflow
+        const moveEntries = historyList.querySelectorAll('.move-entry');
+        if (moveEntries.length > 10) {
+            moveEntries[moveEntries.length - 1].remove();
+        }
+
+        // Scroll to top to show latest move
+        historyList.scrollTop = 0;
+        
+        // Ensure the parent container also scrolls to top if needed
+        const parentPanel = historyList.closest('.recent-moves-panel');
+        if (parentPanel) {
+            parentPanel.scrollTop = 0;
+        }
+    }
+
+    isMovementAction(action) {
+        const movementActions = ['move_up', 'move_down', 'move_left', 'move_right', 'forward'];
+        return movementActions.includes(action);
+    }
+
+    getActionIcon(action) {
+        const icons = {
+            'forward': '⬆️',
+            'move_up': '⬆️',
+            'move_down': '⬇️',
+            'move_left': '⬅️',
+            'move_right': '➡️',
+            'turn_left': '↺',
+            'turn_right': '↻',
+            'shoot': '🏹',
+            'grab': '🤲',
+            'climb': '🪜'
+        };
+        return icons[action] || '❓';
+    }
+
+    // ...existing code...
 }
 
 let gameUI;
+
+// File upload handler - defined early to ensure availability
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+    
+    // Check file type
+    if (!file.name.endsWith('.txt')) {
+        if (gameUI) {
+            gameUI.showMessage('Please select a .txt file', 'error');
+        }
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const fileContent = e.target.result;
+        if (gameUI) {
+            gameUI.loadEnvironmentFromUploadedFile(fileContent);
+        }
+    };
+    
+    reader.onerror = function() {
+        if (gameUI) {
+            gameUI.showMessage('Error reading file', 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    
+    // Clear the input so the same file can be selected again
+    event.target.value = '';
+}
+
+// Make sure it's globally accessible
+window.handleFileUpload = handleFileUpload;
+
+// Initialize UI when page loads
 document.addEventListener('DOMContentLoaded', function() {
     gameUI = new WumpusWorldUI();
 });
@@ -824,18 +1183,22 @@ function toggleEnvironment() {
     }
 }
 
-function loadEnvironmentFromFile(filePath = null) {
-    if (gameUI) {
-        gameUI.loadDefaultEnvironment();
-    }
-}
+// <<<<<<< 1408-Hasnain
+// function loadEnvironmentFromFile(filePath = null) {
+//     if (gameUI) {
+//         gameUI.loadDefaultEnvironment();
+//     }
+// }
 
-function loadDefaultEnvironment() {
-    if (gameUI) {
-        gameUI.loadDefaultEnvironment();
-    }
-}
+// function loadDefaultEnvironment() {
+//     if (gameUI) {
+//         gameUI.loadDefaultEnvironment();
+//     }
+// }
 
+// =======
+// // Example of how to use custom environment
+// >>>>>>> test-color
 function loadExampleEnvironment() {
     const exampleEnv = {
         wumpus: { x: 5, y: 3 },

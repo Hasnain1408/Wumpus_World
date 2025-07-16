@@ -232,7 +232,7 @@ class WumpusGame:
         try:
             if file_path is None:
                 current_dir = Path(__file__).parent
-                file_path = current_dir / "wumpus1.txt"
+                file_path = current_dir / "wumpus.txt"
             
             if not os.path.exists(file_path):
                 print(f"Error: File {file_path} not found")
@@ -291,7 +291,7 @@ class WumpusGame:
             self.board.generate_breezes()
             self.board.generate_stenches()
             
-            print("Environment loaded successfully from wumpus.txt")
+            print("Environment loaded successfully from file")
             return True
             
         except Exception as e:
