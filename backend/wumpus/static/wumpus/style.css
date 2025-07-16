@@ -32,14 +32,14 @@ body {
 /* Main Game Area Layout */
 .main-game-area {
     display: grid;
-    grid-template-columns: 220px minmax(500px, 1fr) 240px;
+    grid-template-columns: 220px minmax(500px, 1fr) 280px;
     gap: 30px;
     align-items: center;
     justify-content: center;
     margin: 30px auto;
     position: relative;
     padding: 20px;
-    max-width: 1500px;
+    max-width: 1600px;
 }
 
 /* Environment Sidebar */
@@ -239,37 +239,28 @@ body {
     margin: auto;
 }
 
-/* Right Info Container */
-.right-info-container {
-    background: rgba(255, 255, 255, 0.08);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    border-radius: 18px;
-    padding: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    width: 100%;
-    height: auto;
-    max-height: 450px;
+/* Right Sidebar Wrapper */
+.right-sidebar-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
+    width: 100%;
     align-self: center;
     justify-self: center;
 }
 
 /* Move Information Panel */
 .move-info-panel {
-    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 200px;
-    overflow-y: auto;
+    gap: 12px;
 }
 
 .move-info-panel h4,
@@ -282,16 +273,83 @@ body {
 
 /* Recent Moves Panel */
 .recent-moves-panel {
-    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-radius: 18px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-height: 200px;
+    min-height: 200px;
+    max-height: 250px;
+}
+
+.move-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     overflow-y: auto;
+    flex: 1;
+    padding-right: 8px;
+}
+
+.move-entry {
+    background: rgba(51, 65, 85, 0.7);
+    border-radius: 10px;
+    padding: 12px 15px;
+    border-left: 4px solid #3b82f6;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 0.9em;
+    margin-bottom: 6px;
+}
+
+.move-entry:hover {
+    background: rgba(51, 65, 85, 0.9);
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.move-entry.ai-move {
+    border-left-color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.15);
+}
+
+.move-entry.failed-move {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.move-action {
+    font-size: 1em;
+    color: #e2e8f0;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.move-result {
+    font-size: 0.85em;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin-top: 4px;
+}
+
+.no-moves {
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+    font-size: 1em;
+    padding: 40px 20px;
+    background: rgba(51, 65, 85, 0.3);
+    border-radius: 12px;
+    border: 2px dashed rgba(100, 116, 139, 0.4);
+    margin: 20px 0;
 }
 
 .board-container::before {
@@ -848,32 +906,28 @@ body {
     border: 2px dashed rgba(100, 116, 139, 0.3);
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling for move panels */
 .move-details::-webkit-scrollbar,
-.move-history-panel::-webkit-scrollbar,
 .recent-moves-panel::-webkit-scrollbar,
 .move-history-list::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
 }
 
 .move-details::-webkit-scrollbar-track,
-.move-history-panel::-webkit-scrollbar-track,
 .recent-moves-panel::-webkit-scrollbar-track,
 .move-history-list::-webkit-scrollbar-track {
     background: rgba(51, 65, 85, 0.3);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 .move-details::-webkit-scrollbar-thumb,
-.move-history-panel::-webkit-scrollbar-thumb,
 .recent-moves-panel::-webkit-scrollbar-thumb,
 .move-history-list::-webkit-scrollbar-thumb {
     background: rgba(148, 163, 184, 0.4);
-    border-radius: 2px;
+    border-radius: 3px;
 }
 
 .move-details::-webkit-scrollbar-thumb:hover,
-.move-history-panel::-webkit-scrollbar-thumb:hover,
 .recent-moves-panel::-webkit-scrollbar-thumb:hover,
 .move-history-list::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 0.6);
@@ -927,10 +981,52 @@ body {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
 }
 
+/* Info Items Styling */
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    margin: 3px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    font-size: 0.9em;
+    transition: background 0.2s ease;
+    min-height: 32px;
+}
+
+.info-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.info-label {
+    color: #e2e8f0;
+    font-weight: 500;
+    min-width: 110px;
+    white-space: nowrap;
+    margin-right: 10px;
+}
+
+.info-value {
+    color: #ffd700;
+    font-weight: 600;
+    text-align: right;
+    flex: 1;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 140px;
+}
+
+.move-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 /* Responsive Design */
 @media (max-width: 1400px) {
     .main-game-area {
-        grid-template-columns: 200px minmax(400px, 1fr) 220px;
+        grid-template-columns: 200px minmax(400px, 1fr) 260px;
         gap: 25px;
         padding: 15px;
     }
@@ -938,7 +1034,7 @@ body {
 
 @media (max-width: 1200px) {
     .main-game-area {
-        grid-template-columns: 180px minmax(350px, 1fr) 200px;
+        grid-template-columns: 180px minmax(350px, 1fr) 240px;
         gap: 20px;
     }
 }
@@ -951,10 +1047,19 @@ body {
     }
     
     .environment-sidebar,
-    .right-info-container {
+    .right-sidebar-wrapper {
         max-height: none;
         align-self: stretch;
         justify-self: stretch;
+    }
+    
+    .right-sidebar-wrapper {
+        gap: 15px;
+    }
+    
+    .recent-moves-panel {
+        min-height: 180px;
+        max-height: 220px;
     }
     
     .board-container {
