@@ -43,7 +43,10 @@ class WumpusGame:
         # Handle direct movement actions
         if action.startswith('move_'):
             direction = action.split('_')[1]
-            return self.move_agent(direction)
+            result = self.move_agent(direction)
+            # Print knowledge after direct movement
+            self.inference_engine.print_knowledge_state()  # <-- ADDED
+            return result
         
         # Create move object
         move = Move(action, direction, self.board.agent.x, self.board.agent.y)
@@ -89,6 +92,9 @@ class WumpusGame:
         
         # Update inference engine
         self.inference_engine.update_knowledge(move)
+        
+        # PRINT KNOWLEDGE STATE AFTER UPDATING (NEW)
+        self.inference_engine.print_knowledge_state()  # <-- ADDED
         
         # Check game status
         if self.board.is_game_won():
@@ -226,7 +232,7 @@ class WumpusGame:
         try:
             if file_path is None:
                 current_dir = Path(__file__).parent
-                file_path = current_dir / "wumpus1.txt"
+                file_path = current_dir / "wumpus.txt"
             
             if not os.path.exists(file_path):
                 print(f"Error: File {file_path} not found")
@@ -285,7 +291,7 @@ class WumpusGame:
             self.board.generate_breezes()
             self.board.generate_stenches()
             
-            print("Environment loaded successfully from wumpus.txt")
+            print("Environment loaded successfully from file")
             return True
             
         except Exception as e:

@@ -39,7 +39,7 @@ class AgentState:
 class WumpusBoard:
     """Main board class for Wumpus World"""
     
-    def __init__(self, size: int = 10):
+    def __init__(self, size: int = 10):  # Updated to match 10x10 board
         self.size = size
         self.board: List[List[Cell]] = []
         self.agent = AgentState()
@@ -311,10 +311,20 @@ class WumpusBoard:
                     'stench': cell.stench,
                     'glitter': cell.glitter,
                     'visited': cell.visited,
-                    'safe': cell.safe
+                    'safe': cell.safe or (x, y) in self.safe_cells
                 }
                 row.append(cell_data)
             board_data.append(row)
+        
+        # Get adjacent cells and their safety status
+        adjacent_cells = []
+        for x, y in self.get_adjacent_positions(self.agent.x, self.agent.y):
+            cell = self.get_cell(x, y)
+            adjacent_cells.append({
+                'x': x,
+                'y': y,
+                'safe': not cell.pit and not cell.wumpus
+            })
         
         return {
             'board': board_data,
@@ -328,7 +338,10 @@ class WumpusBoard:
             },
             'wumpus_alive': self.wumpus_alive,
             'game_over': self.game_over,
-            'game_won': self.is_game_won()
+            'game_won': self.is_game_won(),
+            'visited_cells': [[x, y] for x, y in self.visited_cells],
+            'safe_cells': [[x, y] for x, y in self.safe_cells],
+            'adjacent_cells': adjacent_cells  # Added for adjacent cell safety
         }
     
     def load_environment(self, environment: Dict) -> bool:
